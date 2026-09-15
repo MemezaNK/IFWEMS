@@ -1,0 +1,44 @@
+<div class="emergency-override">
+  <h1>Emergency Procurement Override</h1>
+  <p class="hint">
+    Capturing an override automatically raises a post-transaction compliance review case (FR-013).
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label for="transactionReference">Transaction Reference</label>
+    <input id="transactionReference" formControlName="transactionReference" />
+
+    <label for="orgUnitId">Org Unit Id</label>
+    <input id="orgUnitId" formControlName="orgUnitId" />
+
+    <label for="supplierId">Supplier Id (optional)</label>
+    <input id="supplierId" formControlName="supplierId" />
+
+    <label for="amount">Amount</label>
+    <input id="amount" type="number" formControlName="amount" />
+
+    <label for="emergencyCategory">Emergency Category</label>
+    <input id="emergencyCategory" formControlName="emergencyCategory" placeholder="e.g. PatientCareEmergency" />
+
+    <label for="reason">Reason</label>
+    <textarea id="reason" formControlName="reason" rows="3"></textarea>
+
+    <label for="evidenceDocumentId">Evidence Document Id</label>
+    <input id="evidenceDocumentId" formControlName="evidenceDocumentId" />
+
+    <label for="commodityCode">Commodity Code (optional)</label>
+    <input id="commodityCode" formControlName="commodityCode" />
+
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+
+    @if (transactionId()) {
+      <p class="success">Override captured. Transaction Id: {{ transactionId() }}</p>
+    }
+
+    <button type="submit" [disabled]="form.invalid || isSubmitting()">
+      {{ isSubmitting() ? 'Submitting...' : 'Capture Override' }}
+    </button>
+  </form>
+</div>

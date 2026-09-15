@@ -1,0 +1,48 @@
+<div class="compliance-check">
+  <h1>Real-Time Compliance Check</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label for="transactionReference">Transaction Reference</label>
+    <input id="transactionReference" formControlName="transactionReference" />
+
+    <label for="orgUnitId">Org Unit Id</label>
+    <input id="orgUnitId" formControlName="orgUnitId" />
+
+    <label for="supplierId">Supplier Id (optional)</label>
+    <input id="supplierId" formControlName="supplierId" />
+
+    <label for="contractId">Contract Id (optional)</label>
+    <input id="contractId" formControlName="contractId" />
+
+    <label for="amount">Amount</label>
+    <input id="amount" type="number" formControlName="amount" />
+
+    <label for="invoiceReference">Invoice Reference (optional)</label>
+    <input id="invoiceReference" formControlName="invoiceReference" />
+
+    <label for="purchaseOrderDateUtc">Purchase Order Date (optional)</label>
+    <input id="purchaseOrderDateUtc" type="date" formControlName="purchaseOrderDateUtc" />
+
+    <label for="commodityCode">Commodity Code (optional)</label>
+    <input id="commodityCode" formControlName="commodityCode" />
+
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+
+    <button type="submit" [disabled]="form.invalid || isChecking()">
+      {{ isChecking() ? 'Checking...' : 'Run Check' }}
+    </button>
+  </form>
+
+  @if (result(); as r) {
+    <div class="result" [class]="r.riskRating.toLowerCase()">
+      <p><strong>Risk Score:</strong> {{ r.riskScore }}</p>
+      <p><strong>Risk Rating:</strong> {{ r.riskRating }}</p>
+      <p><strong>Recommended Action:</strong> {{ r.recommendedAction }}</p>
+      @if (r.failedRuleCodes.length) {
+        <p><strong>Failed Rules:</strong> {{ r.failedRuleCodes.join(', ') }}</p>
+      }
+    </div>
+  }
+</div>

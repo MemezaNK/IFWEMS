@@ -1,0 +1,46 @@
+.emergency-override {
+  padding: 2rem;
+  max-width: 480px;
+
+  .hint {
+    color: #667085;
+    font-size: 0.85rem;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  input,
+  textarea {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+  }
+
+  button {
+    margin-top: 0.5rem;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 4px;
+    background: #b42318;
+    color: #fff;
+    cursor: pointer;
+
+    &:disabled {
+      background: #f0a8a2;
+      cursor: not-allowed;
+    }
+  }
+
+  .error {
+    color: #d92d20;
+  }
+
+  .success {
+    color: #027a48;
+  }
+}

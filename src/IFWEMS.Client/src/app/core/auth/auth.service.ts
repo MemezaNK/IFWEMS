@@ -6,6 +6,12 @@ import { AuthUser, LoginRequest, LoginResponse } from '../models/auth.models';
 
 const TOKEN_STORAGE_KEY = 'ifwems_access_token';
 
+// The backend's JwtTokenGenerator writes claims using System.Security.Claims.ClaimTypes,
+// which serialize to these long XML-schema URIs (not the short "unique_name"/"role" names).
+const CLAIM_NAMEIDENTIFIER = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
+const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
+const CLAIM_ROLE = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly currentUserSignal = signal<AuthUser | null>(this.readUserFromToken());
@@ -48,10 +54,10 @@ export class AuthService {
   private decodeToken(token: string): AuthUser | null {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const rolesClaim = payload['role'] ?? payload['roles'] ?? [];
+      const rolesClaim = payload[CLAIM_ROLE] ?? payload['role'] ?? [];
       return {
-        userId: payload['sub'] ?? payload['nameid'] ?? '',
-        username: payload['unique_name'] ?? payload['name'] ?? '',
+        userId: payload['sub'] ?? payload[CLAIM_NAMEIDENTIFIER] ?? '',
+        username: payload[CLAIM_NAME] ?? payload['unique_name'] ?? payload['name'] ?? '',
         roles: Array.isArray(rolesClaim) ? rolesClaim : [rolesClaim]
       };
     } catch {
