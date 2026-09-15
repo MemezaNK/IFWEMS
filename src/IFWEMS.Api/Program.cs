@@ -1,9 +1,12 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using IFWEMS.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +70,33 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// API rate limiting (NFR 4.2 #12): a global per-client-IP limit against abuse/DoS, plus a
+// stricter policy on the login endpoint to slow down credential-stuffing/brute-force attempts.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 builder.Services.AddHealthChecks()
     .AddSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
@@ -83,6 +113,26 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Correlation ID (NFR 4.1 #4): accept an inbound X-Correlation-ID or generate one, echo it
+// back on the response, and attach it to every log line emitted while handling the request
+// so requests can be traced end-to-end across logs/observability tooling.
+app.Use(async (context, next) =>
+{
+    const string headerName = "X-Correlation-ID";
+    var correlationId = context.Request.Headers.TryGetValue(headerName, out var existing) && !string.IsNullOrWhiteSpace(existing)
+        ? existing.ToString()
+        : Guid.NewGuid().ToString();
+
+    context.Response.Headers[headerName] = correlationId;
+
+    using (LogContext.PushProperty("CorrelationId", correlationId))
+    {
+        await next();
+    }
+});
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

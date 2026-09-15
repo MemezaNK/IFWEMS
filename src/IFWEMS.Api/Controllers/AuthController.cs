@@ -1,6 +1,7 @@
 using IFWEMS.Application.Auth;
 using IFWEMS.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace IFWEMS.Api.Controllers;
 
@@ -17,6 +18,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Authenticate with a local IFWEMS account and receive a JWT access token.</summary>
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)

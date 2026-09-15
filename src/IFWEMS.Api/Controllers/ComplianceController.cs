@@ -13,11 +13,13 @@ public class ComplianceController : ControllerBase
 {
     private readonly IComplianceRuleEngine _ruleEngine;
     private readonly IEmergencyOverrideService _overrideService;
+    private readonly ILogger<ComplianceController> _logger;
 
-    public ComplianceController(IComplianceRuleEngine ruleEngine, IEmergencyOverrideService overrideService)
+    public ComplianceController(IComplianceRuleEngine ruleEngine, IEmergencyOverrideService overrideService, ILogger<ComplianceController> logger)
     {
         _ruleEngine = ruleEngine;
         _overrideService = overrideService;
+        _logger = logger;
     }
 
     /// <summary>Real-time compliance check returning risk score, rating and recommended action. FR-010.</summary>
@@ -25,7 +27,22 @@ public class ComplianceController : ControllerBase
     [ProducesResponseType(typeof(TransactionCheckResult), StatusCodes.Status200OK)]
     public async Task<ActionResult<TransactionCheckResult>> Check([FromBody] TransactionCheckRequest request, CancellationToken cancellationToken)
     {
-        return Ok(await _ruleEngine.EvaluateAsync(request, cancellationToken));
+        try
+        {
+            return Ok(await _ruleEngine.EvaluateAsync(request, cancellationToken));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Fail-closed decision (NFR 4.4 #28): if the rules engine itself is unavailable,
+            // the transaction must NOT be silently let through. Prioritising compliance risk
+            // over availability here is deliberate, since bypassing screening on an outage
+            // could allow irregular/unauthorised expenditure to be paid with no record of it
+            // ever having been checked. Callers receive a RED/BLOCK result and must retry or
+            // escalate via the emergency-override workflow (FR-013), which still records and
+            // reviews the transaction.
+            _logger.LogError(ex, "Compliance rule engine evaluation failed for transaction {TransactionReference}; failing closed.", request.TransactionReference);
+            return Ok(new TransactionCheckResult(100, "RED", new[] { "ENGINE_UNAVAILABLE" }, "BLOCK"));
+        }
     }
 
     /// <summary>
