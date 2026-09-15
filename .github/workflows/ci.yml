@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test-backend:
+    name: Build & Test (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore IFWEMS.sln
+
+      - name: Build
+        run: dotnet build IFWEMS.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test IFWEMS.sln --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: "**/test-results.trx"
+
+  # Enabled once src/IFWEMS.Client (Angular) is scaffolded.
+  # build-and-test-frontend:
+  #   name: Build & Test (Angular)
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: src/IFWEMS.Client
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #         cache: "npm"
+  #         cache-dependency-path: src/IFWEMS.Client/package-lock.json
+  #     - run: npm ci
+  #     - run: npm run build -- --configuration production
+  #     - run: npm test -- --watch=false --browsers=ChromeHeadless
