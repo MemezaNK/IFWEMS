@@ -1,2 +1,42 @@
-<router-outlet />
+@if (isAuthenticated()) {
+  <mat-toolbar color="primary">
+    <button mat-icon-button (click)="sidenav.toggle()" aria-label="Toggle navigation menu">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span class="app-title">IFWEMS</span>
+    <span class="spacer"></span>
+    <button mat-icon-button (click)="toggleTheme()" [attr.aria-label]="isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'">
+      <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="User account menu">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="user-menu-header">{{ currentUser()?.username }}</div>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Log out</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="app-shell">
+    <mat-sidenav #sidenav mode="side" opened class="app-nav" aria-label="Primary navigation">
+      <mat-nav-list>
+        @for (link of visibleLinks(); track link.path) {
+          <a mat-list-item [routerLink]="link.path" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>{{ link.icon }}</mat-icon>
+            <span matListItemTitle>{{ link.label }}</span>
+          </a>
+        }
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="app-content">
+      <router-outlet />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+} @else {
+  <router-outlet />
+}
 

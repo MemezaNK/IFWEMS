@@ -1,1 +1,23 @@
 /* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* FR-071: light/dark mode toggle. .dark-theme is applied to <body> by the app shell. */
+body.dark-theme {
+  background-color: #121212;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+/* Visually-hidden but screen-reader accessible utility, supports FR-074 (WCAG 2.1 AA). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

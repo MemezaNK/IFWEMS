@@ -1,9 +1,21 @@
 <div class="dashboard">
   <h1>IFWEMS Dashboard</h1>
   <p>Welcome, {{ authService.currentUser()?.username }}.</p>
-  <nav>
-    <a routerLink="/cases">Case Management</a>
-    <a routerLink="/compliance/check">Compliance Check</a>
-    <a routerLink="/compliance/override">Emergency Override</a>
-  </nav>
+
+  <div class="card-grid">
+    @for (card of visibleCards(); track card.link) {
+      <mat-card>
+        <mat-card-header>
+          <mat-icon mat-card-avatar aria-hidden="true">{{ card.icon }}</mat-icon>
+          <mat-card-title>{{ card.title }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ card.description }}</p>
+        </mat-card-content>
+        <mat-card-actions>
+          <a mat-button color="primary" [routerLink]="card.link">Open</a>
+        </mat-card-actions>
+      </mat-card>
+    }
+  </div>
 </div>
