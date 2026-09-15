@@ -21,6 +21,7 @@ public class IfwemsDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<ComplianceRule> ComplianceRules => Set<ComplianceRule>();
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

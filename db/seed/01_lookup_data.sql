@@ -85,6 +85,7 @@ INSERT INTO @Roles (Name, Description) VALUES
     ('Investigator', 'Performs investigations'),
     ('ComplianceOfficer', 'Creates and manages compliance rules'),
     ('FinanceOfficer', 'Captures recovery transactions'),
+    ('ContractOfficer', 'Manages contracts, suppliers and utilisation tracking'),
     ('ReadOnlyAuditor', 'Read-only access to cases, reports and audit trail');
 
 INSERT INTO Roles (Id, Name, Description, CreatedAtUtc)
