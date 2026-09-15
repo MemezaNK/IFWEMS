@@ -1,4 +1,98 @@
 /* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+// IFWEMS brand palette: deep navy (authority/trust) + gold (alert/value), inspired by
+// industrial-operations dashboards (dark hero, gold call-to-action accents).
+$ifwems-navy-palette: (
+  50: #e9edf5,
+  100: #c8d3e6,
+  200: #a3b6d5,
+  300: #7d98c4,
+  400: #5f82b7,
+  500: #416caa,
+  600: #3b62a0,
+  700: #325593,
+  800: #294887,
+  900: #17306e,
+  A100: #a6c1ff,
+  A200: #7398ff,
+  A400: #406fff,
+  A700: #265cff,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(0, 0, 0, 0.87),
+    A200: rgba(0, 0, 0, 0.87),
+    A400: white,
+    A700: white
+  )
+);
+
+$ifwems-gold-palette: (
+  50: #fdf6e7,
+  100: #f9e6bb,
+  200: #f5d68c,
+  300: #f0c55c,
+  400: #edb838,
+  500: #eaab14,
+  600: #e2a012,
+  700: #d7920f,
+  800: #cc850c,
+  900: #ba6e07,
+  A100: #ffe9b3,
+  A200: #ffd980,
+  A400: #ffc94d,
+  A700: #ffc133,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: rgba(0, 0, 0, 0.87),
+    500: rgba(0, 0, 0, 0.87),
+    600: rgba(0, 0, 0, 0.87),
+    700: rgba(0, 0, 0, 0.87),
+    800: rgba(0, 0, 0, 0.87),
+    900: white,
+    A100: rgba(0, 0, 0, 0.87),
+    A200: rgba(0, 0, 0, 0.87),
+    A400: rgba(0, 0, 0, 0.87),
+    A700: rgba(0, 0, 0, 0.87)
+  )
+);
+
+$ifwems-primary: mat.m2-define-palette($ifwems-navy-palette, 900, 700, 500);
+$ifwems-accent: mat.m2-define-palette($ifwems-gold-palette, 600, 400, 800);
+$ifwems-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+$ifwems-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $ifwems-primary,
+    accent: $ifwems-accent,
+    warn: $ifwems-warn
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0
+));
+
+@include mat.all-component-themes($ifwems-theme);
+
+:root {
+  --ifwems-navy-900: #17306e;
+  --ifwems-navy-700: #1f3d85;
+  --ifwems-navy-500: #416caa;
+  --ifwems-gold-500: #eaab14;
+  --ifwems-gold-600: #e2a012;
+  --ifwems-surface: #f4f6fa;
+}
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }

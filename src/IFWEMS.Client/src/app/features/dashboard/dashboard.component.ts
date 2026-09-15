@@ -30,6 +30,13 @@ export class DashboardComponent {
       icon: 'warning',
       link: '/compliance/override',
       roles: ['ApprovingOfficial', 'SystemAdministrator']
+    },
+    {
+      title: 'Administration',
+      description: 'Manage users, roles and organisation units.',
+      icon: 'admin_panel_settings',
+      link: '/admin',
+      roles: ['SystemAdministrator']
     }
   ];
 

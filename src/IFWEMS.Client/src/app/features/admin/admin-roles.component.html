@@ -1,0 +1,66 @@
+<div class="admin-roles">
+  <h1>Role Management</h1>
+
+  <mat-card class="create-card">
+    <mat-card-content>
+      <h2>Create Role</h2>
+      @if (errorMessage()) {
+        <p class="error">{{ errorMessage() }}</p>
+      }
+      <form class="create-form" (ngSubmit)="createRole()" #roleForm="ngForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input matInput name="name" [(ngModel)]="newRole.name" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Description</mat-label>
+          <input matInput name="description" [(ngModel)]="newRole.description" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="permissions-field">
+          <mat-label>Permission Codes (comma separated)</mat-label>
+          <input matInput name="permissionCodes" [(ngModel)]="permissionCodesInput" placeholder="CASE_READ, CASE_WRITE" />
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="roleForm.invalid || isSaving()">
+          @if (isSaving()) {
+            Saving...
+          } @else {
+            Create Role
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  @if (isLoading()) {
+    <p>Loading roles...</p>
+  } @else {
+    <table mat-table [dataSource]="roles()" class="roles-table">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let role">{{ role.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let role">{{ role.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="permissions">
+        <th mat-header-cell *matHeaderCellDef>Permissions</th>
+        <td mat-cell *matCellDef="let role">
+          <mat-chip-set>
+            @for (permission of role.permissions; track permission) {
+              <mat-chip>{{ permission }}</mat-chip>
+            }
+          </mat-chip-set>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  }
+</div>

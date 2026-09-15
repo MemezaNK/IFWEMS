@@ -40,7 +40,8 @@ export class AppComponent {
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { path: '/cases', label: 'Cases', icon: 'folder_open' },
     { path: '/compliance/check', label: 'Compliance Check', icon: 'fact_check' },
-    { path: '/compliance/override', label: 'Emergency Override', icon: 'warning', roles: ['ApprovingOfficial', 'SystemAdministrator'] }
+    { path: '/compliance/override', label: 'Emergency Override', icon: 'warning', roles: ['ApprovingOfficial', 'SystemAdministrator'] },
+    { path: '/admin', label: 'Administration', icon: 'admin_panel_settings', roles: ['SystemAdministrator'] }
   ];
 
   readonly currentUser;

@@ -1,0 +1,75 @@
+<div class="admin-org-units">
+  <h1>Organisation Units</h1>
+
+  <mat-card class="create-card">
+    <mat-card-content>
+      <h2>Create Organisation Unit</h2>
+      @if (errorMessage()) {
+        <p class="error">{{ errorMessage() }}</p>
+      }
+      <form class="create-form" (ngSubmit)="createOrgUnit()" #orgUnitForm="ngForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Code</mat-label>
+          <input matInput name="code" [(ngModel)]="newOrgUnit.code" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Name</mat-label>
+          <input matInput name="name" [(ngModel)]="newOrgUnit.name" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Level</mat-label>
+          <input matInput name="level" [(ngModel)]="newOrgUnit.level" required placeholder="e.g. Directorate" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Parent Unit</mat-label>
+          <mat-select name="parentOrgUnitId" [(ngModel)]="newOrgUnit.parentOrgUnitId">
+            <mat-option [value]="null">None</mat-option>
+            @for (orgUnit of orgUnits(); track orgUnit.id) {
+              <mat-option [value]="orgUnit.id">{{ orgUnit.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="orgUnitForm.invalid || isSaving()">
+          @if (isSaving()) {
+            Saving...
+          } @else {
+            Create Unit
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  @if (isLoading()) {
+    <p>Loading organisation units...</p>
+  } @else {
+    <table mat-table [dataSource]="orgUnits()" class="org-units-table">
+      <ng-container matColumnDef="code">
+        <th mat-header-cell *matHeaderCellDef>Code</th>
+        <td mat-cell *matCellDef="let unit">{{ unit.code }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let unit">{{ unit.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="level">
+        <th mat-header-cell *matHeaderCellDef>Level</th>
+        <td mat-cell *matCellDef="let unit">{{ unit.level }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="parentOrgUnitId">
+        <th mat-header-cell *matHeaderCellDef>Parent</th>
+        <td mat-cell *matCellDef="let unit">{{ parentName(unit.parentOrgUnitId) }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  }
+</div>

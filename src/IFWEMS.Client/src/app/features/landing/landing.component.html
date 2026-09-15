@@ -1,0 +1,46 @@
+<div class="landing">
+  <header class="landing-nav">
+    <div class="brand">
+      <span class="brand-mark">i</span>
+      <span class="brand-name">Track <strong>Fraud &amp; Waste</strong></span>
+    </div>
+    <nav class="nav-links">
+      @for (link of navLinks; track link.fragment) {
+        <a [href]="'#' + link.fragment">{{ link.label }}</a>
+      }
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-card">
+      <p class="hero-eyebrow">INDUSTRIAL FRAUD &amp; WASTE MANAGEMENT</p>
+      <h1>One platform for tracking cases, compliance, and recoveries.</h1>
+      <p class="hero-subtitle">
+        Improve control, visibility and accountability across procurement, contracts and operations.
+      </p>
+      <div class="hero-actions">
+        <a mat-flat-button color="accent" href="#solutions">Explore Solutions</a>
+        <a mat-stroked-button routerLink="/login" class="login-cta">Go to Compliance Login</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="solutions" class="solutions">
+    <h2>Built for oversight teams</h2>
+    <div class="solution-cards">
+      @for (solution of solutions; track solution.title) {
+        <mat-card class="solution-card">
+          <mat-card-content>
+            <mat-icon class="solution-icon">{{ solution.icon }}</mat-icon>
+            <h3>{{ solution.title }}</h3>
+            <p>{{ solution.description }}</p>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <p>&copy; 2026 IFWEMS &mdash; Industrial Fraud &amp; Waste Management System</p>
+  </footer>
+</div>

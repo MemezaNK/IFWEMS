@@ -1,0 +1,14 @@
+<div class="admin-home">
+  <h1>Administration</h1>
+  <div class="admin-cards">
+    @for (card of cards; track card.link) {
+      <mat-card [routerLink]="card.link" class="admin-card">
+        <mat-card-content>
+          <mat-icon class="admin-card-icon">{{ card.icon }}</mat-icon>
+          <h2>{{ card.title }}</h2>
+          <p>{{ card.description }}</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+</div>

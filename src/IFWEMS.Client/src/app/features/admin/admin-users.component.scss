@@ -1,0 +1,27 @@
+.admin-users {
+  padding: 2rem;
+}
+
+.create-card {
+  margin-bottom: 1.5rem;
+}
+
+.create-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem 1rem;
+  align-items: start;
+
+  button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+.users-table {
+  width: 100%;
+}
+
+.error {
+  color: #b3261e;
+}
