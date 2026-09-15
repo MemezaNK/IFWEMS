@@ -100,4 +100,22 @@ CROSS JOIN Permissions p
 WHERE r.Name = 'SystemAdministrator'
   AND NOT EXISTS (SELECT 1 FROM RolePermissions rp WHERE rp.RoleId = r.Id AND rp.PermissionId = p.Id);
 
+------------------------------------------------------------
+-- Compliance rule catalogue (FR-012 minimum configurable set)
+-- Seeded as approved/active so the compliance-check API is usable out of the box.
+------------------------------------------------------------
+DECLARE @Rules TABLE (Code NVARCHAR(50), Name NVARCHAR(200), Description NVARCHAR(500), ParametersJson NVARCHAR(MAX));
+INSERT INTO @Rules (Code, Name, Description, ParametersJson) VALUES
+    ('CEILING_EXCEEDED', 'Delegation ceiling exceeded', 'Transaction amount exceeds the configured delegation ceiling.', '{"weight": 40, "maxAmount": 500000}'),
+    ('EXPIRED_CONTRACT', 'Expired contract', 'Transaction is linked to a contract past its expiry date.', '{"weight": 35}'),
+    ('DUPLICATE_INVOICE', 'Duplicate invoice', 'An invoice with the same reference has already been processed for this supplier.', '{"weight": 30}'),
+    ('RETROSPECTIVE_PO', 'Retrospective purchase order', 'Purchase order was raised after the goods/services were already supplied.', '{"weight": 30}'),
+    ('REPEAT_EMERGENCY_PROCUREMENT', 'Repeat emergency procurement', 'Same supplier/facility has had a prior emergency override within the configured window.', '{"weight": 25, "windowDays": 90}'),
+    ('SPLITTING', 'Potential transaction splitting', 'Cumulative recent transactions for this supplier/facility approach the delegation ceiling.', '{"weight": 25, "windowDays": 7, "maxAmount": 500000}');
+
+INSERT INTO ComplianceRules (Id, Code, Name, Description, Version, IsActive, EffectiveFromUtc, ParametersJson, IsApproved, ApprovedBy, ApprovedAtUtc, CreatedAtUtc)
+SELECT NEWID(), r.Code, r.Name, r.Description, 1, 1, GETUTCDATE(), r.ParametersJson, 1, 'system-seed', GETUTCDATE(), GETUTCDATE()
+FROM @Rules r
+WHERE NOT EXISTS (SELECT 1 FROM ComplianceRules WHERE Code = r.Code);
+
 PRINT 'IFWEMS lookup data seed complete.';
