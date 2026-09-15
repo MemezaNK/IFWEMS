@@ -28,14 +28,21 @@ public class AppendOnlyAuditInterceptor : SaveChangesInterceptor
     {
         if (context is null) return;
 
-        var violatingEntries = context.ChangeTracker.Entries<AuditLog>()
-            .Where(e => e.State is EntityState.Modified or EntityState.Deleted)
-            .ToList();
+        var auditViolations = context.ChangeTracker.Entries<AuditLog>()
+            .Any(e => e.State is EntityState.Modified or EntityState.Deleted);
+        var caseHistoryViolations = context.ChangeTracker.Entries<CaseStatusHistory>()
+            .Any(e => e.State is EntityState.Modified or EntityState.Deleted);
 
-        if (violatingEntries.Count > 0)
+        if (auditViolations)
         {
             throw new InvalidOperationException(
                 "Audit log records are append-only and cannot be modified or deleted (FR-024/FR-051).");
+        }
+
+        if (caseHistoryViolations)
+        {
+            throw new InvalidOperationException(
+                "Case status history records are append-only and cannot be modified or deleted (FR-024).");
         }
     }
 }

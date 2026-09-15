@@ -1,5 +1,6 @@
 using IFWEMS.Application.Common.Interfaces;
 using IFWEMS.Infrastructure.Auth;
+using IFWEMS.Infrastructure.Cases;
 using IFWEMS.Infrastructure.Notifications;
 using IFWEMS.Infrastructure.Persistence;
 using IFWEMS.Infrastructure.Persistence.Interceptors;
@@ -31,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<ICaseNumberGenerator, CaseNumberGenerator>();
+        services.AddScoped<ICaseService, CaseService>();
 
         return services;
     }

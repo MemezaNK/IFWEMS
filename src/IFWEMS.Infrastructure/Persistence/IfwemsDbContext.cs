@@ -24,6 +24,13 @@ public class IfwemsDbContext : DbContext
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CaseAssessment> CaseAssessments => Set<CaseAssessment>();
+    public DbSet<Investigation> Investigations => Set<Investigation>();
+    public DbSet<Recovery> Recoveries => Set<Recovery>();
+    public DbSet<Control> Controls => Set<Control>();
+    public DbSet<CorrectiveAction> CorrectiveActions => Set<CorrectiveAction>();
+    public DbSet<CaseStatusHistory> CaseStatusHistories => Set<CaseStatusHistory>();
+    public DbSet<CaseNumberSequence> CaseNumberSequences => Set<CaseNumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +53,12 @@ public class IfwemsDbContext : DbContext
         modelBuilder.Entity<Permission>().HasIndex(p => p.Code).IsUnique();
         modelBuilder.Entity<Case>().HasIndex(c => c.CaseNumber).IsUnique();
         modelBuilder.Entity<ComplianceRule>().HasIndex(r => new { r.Code, r.Version }).IsUnique();
+        modelBuilder.Entity<Control>().HasIndex(c => c.Code).IsUnique();
+        modelBuilder.Entity<CaseNumberSequence>()
+            .HasIndex(s => new { s.DepartmentCode, s.CaseTypeCode, s.FiscalYear })
+            .IsUnique();
+        modelBuilder.Entity<CaseStatusHistory>().HasKey(h => h.Id);
+        modelBuilder.Entity<CaseStatusHistory>().HasIndex(h => h.CaseId);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

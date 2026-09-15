@@ -34,8 +34,15 @@ public class Case : Common.BaseEntity
     public string Title { get; set; } = default!;
     public string? Description { get; set; }
     public decimal? AmountInvolved { get; set; }
+    public decimal RecoverableAmount { get; set; }
+    public decimal RecoveredAmount { get; set; }
     public Guid? SupplierId { get; set; }
     public Supplier? Supplier { get; set; }
     public Guid? ContractId { get; set; }
     public Contract? Contract { get; set; }
+    public ICollection<CaseAssessment> Assessments { get; set; } = new List<CaseAssessment>();
+    public ICollection<Investigation> Investigations { get; set; } = new List<Investigation>();
+    public ICollection<Recovery> Recoveries { get; set; } = new List<Recovery>();
+    public ICollection<CorrectiveAction> CorrectiveActions { get; set; } = new List<CorrectiveAction>();
+    public ICollection<Document> Documents { get; set; } = new List<Document>();
 }
