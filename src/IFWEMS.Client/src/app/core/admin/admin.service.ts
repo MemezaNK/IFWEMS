@@ -41,6 +41,6 @@ export class AdminService {
   }
 
   createOrgUnit(request: Omit<OrgUnitDto, 'id' | 'isActive'>): Observable<OrgUnitDto> {
-    return this.http.post<OrgUnitDto>(`${this.baseUrl}/org-units`, { ...request, id: null, isActive: true });
+    return this.http.post<OrgUnitDto>(`${this.baseUrl}/org-units`, { ...request, isActive: true });
   }
 }

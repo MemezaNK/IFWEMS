@@ -1,6 +1,42 @@
 <div class="case-list">
   <h1>Case Management</h1>
 
+  <form class="create-form" (ngSubmit)="createCase()" #caseForm="ngForm">
+    <h2>Capture New Case</h2>
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+
+    <label for="caseType">Case Type</label>
+    <select id="caseType" name="caseType" [(ngModel)]="newCase.caseType" required>
+      <option value="" disabled>Select a case type&hellip;</option>
+      @for (type of caseTypes; track type) {
+        <option [value]="type">{{ type }}</option>
+      }
+    </select>
+
+    <label for="orgUnitId">Org Unit</label>
+    <select id="orgUnitId" name="orgUnitId" [(ngModel)]="newCase.orgUnitId" required>
+      <option value="" disabled>Select an org unit&hellip;</option>
+      @for (orgUnit of orgUnits(); track orgUnit.id) {
+        <option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</option>
+      }
+    </select>
+
+    <label for="title">Title</label>
+    <input id="title" name="title" [(ngModel)]="newCase.title" required />
+
+    <label for="description">Description (optional)</label>
+    <textarea id="description" name="description" rows="2" [(ngModel)]="newCase.description"></textarea>
+
+    <label for="amountInvolved">Amount Involved (optional)</label>
+    <input id="amountInvolved" type="number" name="amountInvolved" [(ngModel)]="newCase.amountInvolved" min="0" />
+
+    <button type="submit" [disabled]="caseForm.invalid || isSaving()">
+      {{ isSaving() ? 'Saving...' : 'Capture Case' }}
+    </button>
+  </form>
+
   @if (isLoading()) {
     <p>Loading cases...</p>
   } @else if (cases().length === 0) {
@@ -15,6 +51,7 @@
           <th>Title</th>
           <th>Recoverable</th>
           <th>Recovered</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -26,6 +63,7 @@
             <td>{{ item.title }}</td>
             <td>{{ item.recoverableAmount | currency:'ZAR' }}</td>
             <td>{{ item.recoveredAmount | currency:'ZAR' }}</td>
+            <td><a [routerLink]="['/cases', item.id]">Open</a></td>
           </tr>
         }
       </tbody>

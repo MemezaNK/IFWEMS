@@ -8,11 +8,21 @@
     <label for="transactionReference">Transaction Reference</label>
     <input id="transactionReference" formControlName="transactionReference" />
 
-    <label for="orgUnitId">Org Unit Id</label>
-    <input id="orgUnitId" formControlName="orgUnitId" />
+    <label for="orgUnitId">Org Unit</label>
+    <select id="orgUnitId" formControlName="orgUnitId">
+      <option value="" disabled>Select an org unit&hellip;</option>
+      @for (orgUnit of orgUnits(); track orgUnit.id) {
+        <option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</option>
+      }
+    </select>
 
-    <label for="supplierId">Supplier Id (optional)</label>
-    <input id="supplierId" formControlName="supplierId" />
+    <label for="supplierId">Supplier (optional)</label>
+    <select id="supplierId" formControlName="supplierId">
+      <option value="">None</option>
+      @for (supplier of suppliers(); track supplier.id) {
+        <option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</option>
+      }
+    </select>
 
     <label for="amount">Amount</label>
     <input id="amount" type="number" formControlName="amount" />
@@ -23,8 +33,13 @@
     <label for="reason">Reason</label>
     <textarea id="reason" formControlName="reason" rows="3"></textarea>
 
-    <label for="evidenceDocumentId">Evidence Document Id</label>
-    <input id="evidenceDocumentId" formControlName="evidenceDocumentId" />
+    <label for="evidenceDocumentId">Evidence Document</label>
+    <select id="evidenceDocumentId" formControlName="evidenceDocumentId">
+      <option value="" disabled>Select a document&hellip;</option>
+      @for (document of documents(); track document.id) {
+        <option [value]="document.id">{{ document.fileName }} (v{{ document.version }})</option>
+      }
+    </select>
 
     <label for="commodityCode">Commodity Code (optional)</label>
     <input id="commodityCode" formControlName="commodityCode" />

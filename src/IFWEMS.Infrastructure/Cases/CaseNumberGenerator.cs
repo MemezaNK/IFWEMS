@@ -38,7 +38,7 @@ public class CaseNumberGenerator : ICaseNumberGenerator
             System.Data.IsolationLevel.Serializable, cancellationToken);
 
         // Atomic, row-locked increment. Creates the sequence row on first use for the (dept, type, FY) tuple.
-        var nextValue = await _dbContext.Database.SqlQueryRaw<int>(
+        var nextValues = await _dbContext.Database.SqlQueryRaw<int>(
             @"MERGE INTO CaseNumberSequences WITH (HOLDLOCK) AS target
               USING (SELECT {0} AS DepartmentCode, {1} AS CaseTypeCode, {2} AS FiscalYear) AS source
                 ON target.DepartmentCode = source.DepartmentCode
@@ -51,7 +51,9 @@ public class CaseNumberGenerator : ICaseNumberGenerator
                 VALUES (NEWID(), source.DepartmentCode, source.CaseTypeCode, source.FiscalYear, 1)
               OUTPUT INSERTED.LastValue AS Value;",
             DepartmentCode, typeCode, fiscalYear)
-            .SingleAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+        var nextValue = nextValues.Single();
+
 
         await transaction.CommitAsync(cancellationToken);
 

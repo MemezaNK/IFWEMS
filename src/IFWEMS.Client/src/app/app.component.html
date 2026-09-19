@@ -23,11 +23,51 @@
   <mat-sidenav-container class="app-shell">
     <mat-sidenav #sidenav mode="side" opened class="app-nav" aria-label="Primary navigation">
       <mat-nav-list>
-        @for (link of visibleLinks(); track link.path) {
-          <a mat-list-item [routerLink]="link.path" routerLinkActive="active-link">
-            <mat-icon matListItemIcon>{{ link.icon }}</mat-icon>
-            <span matListItemTitle>{{ link.label }}</span>
-          </a>
+        @for (link of visibleLinks(); track link.label) {
+          @if (link.children && link.children.length > 0) {
+            <!-- Collapsible menu item with children -->
+            <div class="nav-section">
+              <button 
+                mat-list-item 
+                class="nav-parent"
+                (click)="toggleExpanded(link.label)"
+                [class.expanded]="isExpanded(link.label)">
+                <span class="nav-item-row">
+                  <mat-icon class="nav-item-icon">{{ link.icon }}</mat-icon>
+                  <span class="nav-item-label">{{ link.label }}</span>
+                  <mat-icon class="expand-icon">{{ isExpanded(link.label) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                </span>
+              </button>
+              @if (isExpanded(link.label)) {
+                <mat-nav-list class="nav-children">
+                  @for (child of visibleChildren(link); track child.path) {
+                    <a 
+                      mat-list-item 
+                      [routerLink]="child.path" 
+                      routerLinkActive="active-link"
+                      class="nav-child">
+                      <span class="nav-item-row">
+                        <mat-icon class="nav-item-icon">{{ child.icon }}</mat-icon>
+                        <span class="nav-item-label">{{ child.label }}</span>
+                      </span>
+                    </a>
+                  }
+                </mat-nav-list>
+              }
+            </div>
+          } @else {
+            <!-- Simple menu item without children -->
+            <a 
+              mat-list-item 
+              [routerLink]="link.path" 
+              routerLinkActive="active-link"
+              class="nav-link">
+              <span class="nav-item-row">
+                <mat-icon class="nav-item-icon">{{ link.icon }}</mat-icon>
+                <span class="nav-item-label">{{ link.label }}</span>
+              </span>
+            </a>
+          }
         }
       </mat-nav-list>
     </mat-sidenav>

@@ -1,0 +1,49 @@
+.case-detail {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+
+  .meta {
+    color: #555;
+  }
+
+  .error {
+    color: #b00020;
+  }
+
+  .panel {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 16px 0;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+
+      th,
+      td {
+        text-align: left;
+        padding: 6px 8px;
+        border-bottom: 1px solid #eee;
+      }
+    }
+  }
+
+  .inline-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+
+    input,
+    select {
+      padding: 6px;
+    }
+
+    button {
+      padding: 6px 12px;
+    }
+  }
+}

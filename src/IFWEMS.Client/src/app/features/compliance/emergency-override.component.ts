@@ -1,7 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ComplianceService } from '../../core/compliance/compliance.service';
+import { AdminService } from '../../core/admin/admin.service';
+import { SuppliersService } from '../../core/suppliers/suppliers.service';
+import { DocumentsService } from '../../core/documents/documents.service';
+import { OrgUnitDto } from '../../core/models/admin.models';
+import { SupplierDto } from '../../core/models/supplier.models';
+import { DocumentDto } from '../../core/models/document.models';
 
 @Component({
   selector: 'app-emergency-override',
@@ -10,16 +16,22 @@ import { ComplianceService } from '../../core/compliance/compliance.service';
   templateUrl: './emergency-override.component.html',
   styleUrl: './emergency-override.component.scss'
 })
-export class EmergencyOverrideComponent {
+export class EmergencyOverrideComponent implements OnInit {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly transactionId = signal<string | null>(null);
+  readonly orgUnits = signal<OrgUnitDto[]>([]);
+  readonly suppliers = signal<SupplierDto[]>([]);
+  readonly documents = signal<DocumentDto[]>([]);
 
   readonly form;
 
   constructor(
     private readonly fb: FormBuilder,
-    private readonly complianceService: ComplianceService
+    private readonly complianceService: ComplianceService,
+    private readonly adminService: AdminService,
+    private readonly suppliersService: SuppliersService,
+    private readonly documentsService: DocumentsService
   ) {
     this.form = this.fb.nonNullable.group({
       transactionReference: ['', Validators.required],
@@ -31,6 +43,12 @@ export class EmergencyOverrideComponent {
       evidenceDocumentId: ['', Validators.required],
       commodityCode: ['']
     });
+  }
+
+  ngOnInit(): void {
+    this.adminService.getOrgUnits().subscribe((orgUnits) => this.orgUnits.set(orgUnits));
+    this.suppliersService.getAll().subscribe((suppliers) => this.suppliers.set(suppliers));
+    this.documentsService.getAll().subscribe((documents) => this.documents.set(documents));
   }
 
   submit(): void {

@@ -1,0 +1,156 @@
+<div class="case-detail">
+  <a routerLink="/cases">&larr; Back to Cases</a>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  @if (caseDetail(); as c) {
+    <h1>{{ c.caseNumber }} — {{ c.title }}</h1>
+    <p class="meta">
+      <strong>Type:</strong> {{ c.caseType }} &nbsp;|&nbsp;
+      <strong>Status:</strong> {{ c.status }} &nbsp;|&nbsp;
+      <strong>Amount Involved:</strong> {{ c.amountInvolved | currency:'ZAR' }} &nbsp;|&nbsp;
+      <strong>Recoverable:</strong> {{ c.recoverableAmount | currency:'ZAR' }} &nbsp;|&nbsp;
+      <strong>Recovered:</strong> {{ c.recoveredAmount | currency:'ZAR' }}
+    </p>
+    @if (c.description) {
+      <p>{{ c.description }}</p>
+    }
+
+    <section class="panel">
+      <h2>Change Case Status (FR-024)</h2>
+      <div class="inline-form">
+        <select [(ngModel)]="newStatus" name="newStatus">
+          <option value="" disabled>Select new status&hellip;</option>
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+        <input placeholder="Reason" [(ngModel)]="statusReason" name="statusReason" />
+        <button type="button" [disabled]="!newStatus" (click)="changeStatus()">Change Status</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Investigations</h2>
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Findings</th><th>Recommendation</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (item of investigations(); track item.id) {
+            <tr>
+              <td>{{ item.status }}</td>
+              <td>{{ item.findings ?? '—' }}</td>
+              <td>{{ item.recommendation ?? '—' }}</td>
+              <td>{{ item.createdAtUtc | date:'short' }}</td>
+              <td>
+                @if (item.status === 'PendingApproval') {
+                  <button type="button" (click)="approveInvestigation(item.id, true)">Approve</button>
+                  <button type="button" (click)="approveInvestigation(item.id, false)">Reject</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="inline-form">
+        <input placeholder="Findings" [(ngModel)]="newInvestigation.findings" name="findings" />
+        <input placeholder="Recommendation" [(ngModel)]="newInvestigation.recommendation" name="recommendation" />
+        <button type="button" (click)="createInvestigation()">Capture Investigation</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Recoveries</h2>
+      <table>
+        <thead>
+          <tr><th>Amount</th><th>Status</th><th>Reference</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (item of recoveries(); track item.id) {
+            <tr>
+              <td>{{ item.amount | currency:'ZAR' }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.reference ?? '—' }}</td>
+              <td>{{ item.createdAtUtc | date:'short' }}</td>
+              <td>
+                @if (item.status === 'Recovered') {
+                  <button type="button" (click)="approveWriteOff(item.id)">Write Off</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="inline-form">
+        <input type="number" placeholder="Amount" [(ngModel)]="newRecovery.amount" name="recoveryAmount" min="0.01" />
+        <input placeholder="Reference" [(ngModel)]="newRecovery.reference" name="recoveryReference" />
+        <button type="button" (click)="captureRecovery()">Capture Recovery</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Corrective Actions</h2>
+      <table>
+        <thead>
+          <tr><th>Control</th><th>Description</th><th>Status</th><th>Verified By</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (item of correctiveActions(); track item.id) {
+            <tr>
+              <td>{{ controlName(item.controlId) }}</td>
+              <td>{{ item.description }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.verifiedBy ?? '—' }}</td>
+              <td>
+                @if (item.status === 'Pending') {
+                  <button type="button" (click)="verifyCorrectiveAction(item.id)">Verify</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="inline-form">
+        <select [(ngModel)]="newCorrectiveAction.controlId" name="controlId">
+          <option value="" disabled>Select control&hellip;</option>
+          @for (control of controls(); track control.id) {
+            <option [value]="control.id">{{ control.name }} ({{ control.code }})</option>
+          }
+        </select>
+        <input placeholder="Description" [(ngModel)]="newCorrectiveAction.description" name="correctiveDescription" />
+        <button type="button" (click)="createCorrectiveAction()">Create Corrective Action</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Evidence Documents</h2>
+      <table>
+        <thead>
+          <tr><th>File Name</th><th>Type</th><th>Classification</th><th>Version</th><th>Uploaded By</th></tr>
+        </thead>
+        <tbody>
+          @for (doc of documents(); track doc.id) {
+            <tr>
+              <td>{{ doc.fileName }}</td>
+              <td>{{ doc.documentType }}</td>
+              <td>{{ doc.confidentialityClassification }}</td>
+              <td>{{ doc.version }}</td>
+              <td>{{ doc.uploadedBy }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="inline-form">
+        <input type="file" (change)="onFileSelected($event)" />
+        <input placeholder="Document Type" [(ngModel)]="uploadDocumentType" name="uploadDocumentType" />
+        <input placeholder="Classification" [(ngModel)]="uploadConfidentiality" name="uploadConfidentiality" />
+        <button type="button" [disabled]="!selectedFile" (click)="uploadDocument()">Upload</button>
+      </div>
+    </section>
+  } @else {
+    <p>Loading case...</p>
+  }
+</div>

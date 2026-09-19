@@ -1,11 +1,12 @@
-export type CaseType = 'IrregularExpenditure' | 'FruitlessAndWastefulExpenditure' | 'UnauthorisedExpenditure' | 'PotentialNonCompliance';
+export type CaseType = 'IrregularExpenditure' | 'FruitlessWasteful' | 'UnauthorisedExpenditure' | 'PotentialNonCompliance';
 export type CaseStatus =
   | 'Draft'
   | 'UnderAssessment'
   | 'UnderInvestigation'
   | 'Determined'
-  | 'UnderRecovery'
-  | 'AwaitingCorrectiveAction'
+  | 'RecoveryInProgress'
+  | 'ConsequenceManagement'
+  | 'CorrectiveActionPending'
   | 'Closed';
 
 export interface CaseDto {
@@ -15,7 +16,8 @@ export interface CaseDto {
   status: CaseStatus;
   orgUnitId: string;
   title: string;
-  description: string;
+  description: string | null;
+  amountInvolved: number | null;
   recoverableAmount: number;
   recoveredAmount: number;
   createdAtUtc: string;
@@ -25,8 +27,8 @@ export interface CreateCaseRequest {
   caseType: CaseType;
   orgUnitId: string;
   title: string;
-  description: string;
-  recoverableAmount: number;
+  description: string | null;
+  amountInvolved: number | null;
   supplierId?: string | null;
   contractId?: string | null;
 }
@@ -35,3 +37,4 @@ export interface ChangeCaseStatusRequest {
   newStatus: CaseStatus;
   reason: string;
 }
+

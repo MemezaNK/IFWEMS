@@ -1,6 +1,6 @@
 .landing {
   min-height: 100vh;
-  background: var(--ifwems-surface);
+  background: #f8f9fa;
   display: flex;
   flex-direction: column;
 }
@@ -10,42 +10,62 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2.5rem;
-  background: var(--ifwems-navy-900);
-  color: #fff;
+  background: white;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 2px solid var(--ifwems-gold-500);
 
   .brand {
     display: flex;
     align-items: baseline;
     gap: 0.35rem;
     font-size: 1.15rem;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
 
     .brand-mark {
       color: var(--ifwems-gold-500);
       font-weight: 700;
       font-style: italic;
+      font-size: 1.4rem;
     }
 
     .brand-name {
-      font-weight: 500;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--ifwems-navy-900);
 
       strong {
         font-weight: 700;
+        color: var(--ifwems-navy-900);
       }
     }
   }
 
-  .nav-links {
+  .nav-cta {
     display: flex;
-    gap: 1.75rem;
+    gap: 1rem;
+    align-items: center;
+  }
 
-    a {
-      color: rgba(255, 255, 255, 0.85);
-      text-decoration: none;
-      font-size: 0.9rem;
+  .nav-login-btn {
+    color: var(--ifwems-gold-500) !important;
+    border-color: var(--ifwems-gold-500) !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    padding: 6px 16px !important;
 
-      &:hover {
-        color: var(--ifwems-gold-500);
-      }
+    &:hover {
+      background-color: var(--ifwems-gold-500) !important;
+      color: white !important;
+      border-color: var(--ifwems-gold-600) !important;
     }
   }
 }
@@ -55,30 +75,47 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 480px;
+  min-height: 520px;
   padding: 4rem 1.5rem;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(234, 171, 20, 0.12), transparent 45%),
-    linear-gradient(135deg, var(--ifwems-navy-900) 0%, var(--ifwems-navy-700) 55%, var(--ifwems-navy-500) 100%);
+  background: linear-gradient(135deg, var(--ifwems-navy-900) 0%, var(--ifwems-navy-700) 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(234, 171, 20, 0.2), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(79, 195, 247, 0.15), transparent 50%);
+    pointer-events: none;
+  }
 }
 
 .hero-card {
+  position: relative;
+  z-index: 1;
   max-width: 760px;
-  padding: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 3.5rem;
+  border: none;
   border-radius: 12px;
-  background: rgba(10, 20, 45, 0.35);
-  backdrop-filter: blur(4px);
-  color: #fff;
+  background: white;
+  color: var(--ifwems-navy-900);
   text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.6s ease-out;
 }
 
-.hero-eyebrow {
-  margin: 0 0 0.75rem;
-  letter-spacing: 0.12em;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ifwems-gold-500);
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero-card h1 {
@@ -86,68 +123,119 @@
   font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--ifwems-navy-900);
+}
+
+.hero-eyebrow {
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ifwems-gold-600);
+  text-transform: uppercase;
 }
 
 .hero-subtitle {
   margin: 0 0 2rem;
   font-size: 1.05rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(0, 0, 0, 0.7);
+  line-height: 1.6;
 }
 
 .hero-actions {
   display: flex;
   gap: 1rem;
   justify-content: center;
+  flex-wrap: wrap;
+
+  a {
+    transition: all 0.3s ease;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
 
   .login-cta {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.6);
+    color: var(--ifwems-gold-500) !important;
+    border-color: var(--ifwems-gold-500) !important;
+    background-color: transparent !important;
+
+    &:hover {
+      background-color: var(--ifwems-gold-500) !important;
+      color: white !important;
+      border-color: var(--ifwems-gold-600) !important;
+    }
   }
 }
 
 .solutions {
-  padding: 3.5rem 2.5rem;
+  padding: 5rem 2.5rem;
   text-align: center;
+  background: white;
 
   h2 {
-    margin: 0 0 2rem;
+    margin: 0 0 2.5rem;
+    font-size: 2rem;
+    font-weight: 700;
     color: var(--ifwems-navy-900);
+    letter-spacing: -0.5px;
   }
 }
 
 .solution-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1.25rem;
-  max-width: 1100px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .solution-card {
   text-align: left;
+  border-radius: 12px;
+  padding: 2rem;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+    border-color: var(--ifwems-gold-500);
+  }
 
   .solution-icon {
     color: var(--ifwems-gold-600);
-    font-size: 2rem;
-    height: 2rem;
-    width: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    height: 2.5rem;
+    width: 2.5rem;
+    margin-bottom: 1rem;
   }
 
   h3 {
-    margin: 0 0 0.4rem;
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ifwems-navy-900);
   }
 
   p {
     margin: 0;
-    color: rgba(0, 0, 0, 0.65);
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.95rem;
+    line-height: 1.6;
   }
 }
 
 .landing-footer {
-  padding: 1.5rem;
+  padding: 2rem;
   text-align: center;
   font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.55);
-  background: #fff;
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: 3rem;
 }

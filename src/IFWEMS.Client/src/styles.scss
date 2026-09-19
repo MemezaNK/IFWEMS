@@ -115,3 +115,29 @@ body.dark-theme {
   white-space: nowrap;
   border: 0;
 }
+
+/* Global API error/success toasts (see core/http/error.interceptor.ts and core/shared/toast.service.ts). */
+.ifwems-toast {
+  .mdc-snackbar__surface {
+    border-radius: 6px;
+  }
+}
+
+.ifwems-toast-error .mdc-snackbar__surface {
+  background-color: #b00020 !important;
+}
+
+.ifwems-toast-success .mdc-snackbar__surface {
+  background-color: #2e7d32 !important;
+}
+
+.ifwems-toast-error .mdc-snackbar-label,
+.ifwems-toast-success .mdc-snackbar-label {
+  color: #fff !important;
+}
+
+.ifwems-toast-error .mat-mdc-snack-bar-action .mdc-button__label,
+.ifwems-toast-success .mat-mdc-snack-bar-action .mdc-button__label {
+  color: #fff !important;
+}
+

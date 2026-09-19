@@ -1,0 +1,60 @@
+<div class="suppliers">
+  <h1>Supplier Risk Management</h1>
+
+  <form class="create-form" (ngSubmit)="createSupplier()" #supplierForm="ngForm">
+    <h2>Create Supplier</h2>
+    @if (errorMessage()) {
+      <p class="error">{{ errorMessage() }}</p>
+    }
+
+    <label for="supplierCode">Supplier Code</label>
+    <input id="supplierCode" name="supplierCode" [(ngModel)]="newSupplier.supplierCode" required />
+
+    <label for="name">Name</label>
+    <input id="name" name="name" [(ngModel)]="newSupplier.name" required />
+
+    <label for="registrationNumber">Registration Number (optional)</label>
+    <input id="registrationNumber" name="registrationNumber" [(ngModel)]="newSupplier.registrationNumber" />
+
+    <button type="submit" [disabled]="supplierForm.invalid || isSaving()">
+      {{ isSaving() ? 'Saving...' : 'Create Supplier' }}
+    </button>
+  </form>
+
+  @if (riskProfile(); as profile) {
+    <div class="risk-profile">
+      <h2>Risk Profile: {{ profile.name }}</h2>
+      <p><strong>Rating:</strong> {{ profile.riskRating }}</p>
+      <p><strong>Deviation Count:</strong> {{ profile.deviationCount }}</p>
+      <p><strong>Case Count:</strong> {{ profile.caseCount }}</p>
+      <p><strong>Contract Count:</strong> {{ profile.contractCount }}</p>
+      <p><strong>Total Contract Value:</strong> {{ profile.totalContractValue | currency:'ZAR' }}</p>
+      <p><strong>Concentration:</strong> {{ profile.concentrationPercentage }}%</p>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <p>Loading suppliers...</p>
+  } @else {
+    <table class="suppliers-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Registration Number</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (supplier of suppliers(); track supplier.id) {
+          <tr>
+            <td>{{ supplier.supplierCode }}</td>
+            <td>{{ supplier.name }}</td>
+            <td>{{ supplier.registrationNumber ?? '—' }}</td>
+            <td><button type="button" (click)="viewRiskProfile(supplier.id)">View Risk Profile</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

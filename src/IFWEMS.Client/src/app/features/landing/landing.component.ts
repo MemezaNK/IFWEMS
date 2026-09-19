@@ -18,12 +18,7 @@ interface SolutionCard {
   styleUrl: './landing.component.scss'
 })
 export class LandingComponent {
-  readonly navLinks = [
-    { label: 'Case Management', fragment: 'case-management' },
-    { label: 'Compliance Tracking', fragment: 'compliance-tracking' },
-    { label: 'Investigations & Recoveries', fragment: 'investigations-recoveries' },
-    { label: 'Reporting', fragment: 'reporting' }
-  ];
+  readonly navLinks = [];
 
   readonly solutions: SolutionCard[] = [
     {

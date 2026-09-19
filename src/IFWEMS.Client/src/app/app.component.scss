@@ -1,6 +1,7 @@
 .app-title {
   margin-left: 8px;
   font-weight: 500;
+  font-size: 1.05rem;
 
   .brand-mark {
     color: var(--ifwems-gold-500);
@@ -19,9 +20,10 @@
 }
 
 .user-menu-header {
-  padding: 8px 16px;
+  padding: 12px 16px;
   font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.6);
+  font-weight: 600;
+  color: var(--ifwems-navy-900);
 }
 
 .app-shell {
@@ -29,13 +31,205 @@
 }
 
 .app-nav {
-  width: 240px;
+  width: 260px;
+  background: #0a142d;
+  border-right: 1px solid rgba(234, 171, 20, 0.15);
+
+  ::ng-deep {
+    .mat-mdc-nav-list { padding: 8px 0; }
+    .mat-mdc-list-item {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.947);
+      height: auto;
+      min-height: 38px;
+      padding: 0 !important;
+    }
+    .mdc-list-item__content { padding: 0 !important; }
+  }
 }
 
 .app-content {
-  padding: 16px;
+  padding: 24px;
+  background: #f8f9fa;
+  overflow-y: auto;
 }
 
 .active-link {
-  font-weight: 600;
+  font-weight: 600 !important;
+  color: var(--ifwems-gold-500) !important;
+  background-color: rgba(234, 171, 20, 0.15) !important;
+  border-left: 3px solid var(--ifwems-gold-500);
+  padding-left: 13px !important;
+}
+
+// Shared row layout for icon + label (+ optional chevron)
+.nav-item-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.nav-item-icon {
+  margin-right: 12px;
+  font-size: 1.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nav-item-label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 400;
+}
+
+// Collapsible menu styles
+.nav-section {
+  padding: 0;
+  margin: 0;
+}
+
+.nav-parent {
+  width: 100%;
+  padding: 9px 16px !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  transition: all 0.2s ease;
+  margin: 2px 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent !important;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.95) !important;
+
+    .nav-item-icon { color: rgba(255, 255, 255, 0.8); }
+  }
+
+  &.expanded {
+    background-color: rgba(234, 171, 20, 0.1);
+    color: var(--ifwems-gold-500) !important;
+    border-left-color: var(--ifwems-gold-500);
+
+    .nav-item-icon,
+    .nav-item-label {
+      color: var(--ifwems-gold-500);
+    }
+
+    .expand-icon {
+      color: var(--ifwems-gold-500);
+    }
+  }
+
+  .expand-icon {
+    font-size: 1.1rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-left: 8px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease-in-out;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  &.expanded .expand-icon {
+    transform: rotate(180deg);
+  }
+}
+
+.nav-children {
+  background-color: transparent;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0;
+  overflow: visible;
+  border-left: none;
+
+  ::ng-deep .mat-mdc-list-item {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .nav-child {
+    width: 100%;
+    padding: 7px 16px 7px 40px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06) !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+
+      .nav-item-icon { color: rgba(255, 255, 255, 0.75); }
+    }
+
+    &.active-link {
+      background-color: rgba(234, 171, 20, 0.1) !important;
+      color: var(--ifwems-gold-500) !important;
+      font-weight: 600;
+      border-left-color: var(--ifwems-gold-500);
+      padding-left: 37px !important;
+
+      .nav-item-label { color: var(--ifwems-gold-500); }
+    }
+
+    .nav-item-icon {
+      font-size: 0.95rem;
+      width: 0.95rem;
+      height: 0.95rem;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    &.active-link .nav-item-icon {
+      color: var(--ifwems-gold-500);
+    }
+  }
+}
+
+.nav-link {
+  width: 100%;
+  padding: 9px 16px !important;
+  margin: 2px 0;
+  border-radius: 0;
+  border: none;
+  border-left: 3px solid transparent;
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-weight: 400;
+  font-size: 0.8125rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.95) !important;
+
+    .nav-item-icon { color: rgba(255, 255, 255, 0.8); }
+  }
+
+  &.active-link {
+    background-color: rgba(234, 171, 20, 0.1) !important;
+    color: var(--ifwems-gold-500) !important;
+    font-weight: 600;
+    border-left-color: var(--ifwems-gold-500);
+    padding-left: 13px !important;
+
+    .nav-item-icon,
+    .nav-item-label {
+      color: var(--ifwems-gold-500);
+    }
+  }
 }

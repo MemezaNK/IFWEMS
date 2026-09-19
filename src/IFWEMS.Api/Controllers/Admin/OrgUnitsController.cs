@@ -10,7 +10,7 @@ public record OrgUnitDto(Guid Id, string Code, string Name, string Level, Guid? 
 
 [ApiController]
 [Route("api/admin/org-units")]
-[Authorize(Roles = "SystemAdministrator")]
+[Authorize]
 public class OrgUnitsController : ControllerBase
 {
     private readonly IfwemsDbContext _dbContext;
@@ -32,6 +32,7 @@ public class OrgUnitsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<OrgUnitDto>> Create([FromBody] OrgUnitDto dto, CancellationToken cancellationToken)
     {
         var entity = new OrgUnit

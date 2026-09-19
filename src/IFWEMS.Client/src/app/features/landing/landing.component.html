@@ -4,11 +4,9 @@
       <span class="brand-mark">i</span>
       <span class="brand-name">Track <strong>Fraud &amp; Waste</strong></span>
     </div>
-    <nav class="nav-links">
-      @for (link of navLinks; track link.fragment) {
-        <a [href]="'#' + link.fragment">{{ link.label }}</a>
-      }
-    </nav>
+    <div class="nav-cta">
+      <a mat-stroked-button routerLink="/login" class="nav-login-btn">Login</a>
+    </div>
   </header>
 
   <section class="hero">
@@ -20,7 +18,7 @@
       </p>
       <div class="hero-actions">
         <a mat-flat-button color="accent" href="#solutions">Explore Solutions</a>
-        <a mat-stroked-button routerLink="/login" class="login-cta">Go to Compliance Login</a>
+        <a mat-stroked-button routerLink="/login" class="login-cta">Go to Login</a>
       </div>
     </div>
   </section>

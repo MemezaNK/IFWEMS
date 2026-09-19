@@ -1,0 +1,23 @@
+<div class="reports">
+  <h1>Reports &amp; Registers</h1>
+  <p class="hint">Export operational registers to CSV (Excel-compatible).</p>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+
+  <ul class="report-list">
+    <li>
+      <span>Irregular / Fruitless &amp; Wasteful Expenditure Case Register</span>
+      <button type="button" (click)="downloadCases()">Download CSV</button>
+    </li>
+    <li>
+      <span>Recovery Register</span>
+      <button type="button" (click)="downloadRecoveries()">Download CSV</button>
+    </li>
+    <li>
+      <span>Contract Exception / Register</span>
+      <button type="button" (click)="downloadContracts()">Download CSV</button>
+    </li>
+  </ul>
+</div>

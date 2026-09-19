@@ -1,21 +1,83 @@
-<div class="dashboard">
-  <h1>IFWEMS Dashboard</h1>
-  <p>Welcome, {{ authService.currentUser()?.username }}.</p>
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>IFWEMS Dashboard</h1>
+    <p>Welcome, {{ authService.currentUser()?.username }}.</p>
+  </div>
 
-  <div class="card-grid">
-    @for (card of visibleCards(); track card.link) {
-      <mat-card>
-        <mat-card-header>
-          <mat-icon mat-card-avatar aria-hidden="true">{{ card.icon }}</mat-icon>
-          <mat-card-title>{{ card.title }}</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>{{ card.description }}</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <a mat-button color="primary" [routerLink]="card.link">Open</a>
-        </mat-card-actions>
-      </mat-card>
-    }
+  <!-- Key Metrics Section -->
+  <div class="metrics-section">
+    <h2>Key Metrics</h2>
+    <div class="metrics-grid">
+      @for (metric of metrics(); track metric.label) {
+        <div class="metric-card" [style.border-left-color]="metric.color">
+          <div class="metric-header">
+            <mat-icon [style.color]="metric.color">{{ metric.icon }}</mat-icon>
+            <span class="metric-label">{{ metric.label }}</span>
+          </div>
+          <div class="metric-value">{{ metric.value }}</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Status Distribution Section -->
+  <div class="data-section">
+    <h2>Case Status Distribution</h2>
+    <div class="status-distribution">
+      @for (status of ['New', 'UnderInvestigation', 'UnderAssessment', 'RecoveryInProgress', 'Closed', 'PendingCorrectiveAction']; track status) {
+        @if ((caseStatusCounts()[status] ?? 0) > 0) {
+          <div class="status-row">
+            <div class="status-label">{{ status }}</div>
+            <div class="status-bar-container">
+              <div 
+                class="status-bar" 
+                [style.width.%]="getStatusBarPercentage(status)"
+                [style.background-color]="getStatusColors()[status]">
+              </div>
+            </div>
+            <div class="status-count">{{ caseStatusCounts()[status] }}</div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Case Type Distribution Section -->
+  <div class="data-section">
+    <h2>Cases by Type</h2>
+    <div class="type-grid">
+      @for (type of ['IrregularExpenditure', 'FruitlessExpenditure', 'WastedExpenditure', 'UnauthorisedExpenditure']; track type) {
+        @if ((caseTypeCounts()[type] ?? 0) > 0) {
+          <div 
+            class="type-card"
+            [style.background-color]="getTypeColors()[type]">
+            <div class="type-name">{{ type }}</div>
+            <div class="type-count">{{ caseTypeCounts()[type] }} cases</div>
+            <div class="type-percentage">{{ getTypePercentage(type) | number:'1.1-1' }}%</div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Quick Access Cards Section -->
+  <div class="cards-section">
+    <h2>Quick Access</h2>
+    <div class="card-grid">
+      @for (card of visibleCards(); track card.link) {
+        <mat-card>
+          <mat-card-header>
+            <mat-icon mat-card-avatar aria-hidden="true">{{ card.icon }}</mat-icon>
+            <mat-card-title>{{ card.title }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>{{ card.description }}</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <a mat-button color="primary" [routerLink]="card.link">Open</a>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
   </div>
 </div>

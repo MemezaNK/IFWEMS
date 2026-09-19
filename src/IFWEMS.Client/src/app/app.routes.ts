@@ -22,6 +22,32 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cases/case-list.component').then((m) => m.CaseListComponent)
   },
   {
+    path: 'cases/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/cases/case-detail.component').then((m) => m.CaseDetailComponent)
+  },
+  {
+    path: 'contracts',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/contracts/contracts.component').then((m) => m.ContractsComponent)
+  },
+  {
+    path: 'suppliers',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/suppliers/suppliers.component').then((m) => m.SuppliersComponent)
+  },
+  {
+    path: 'notifications',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent)
+  },
+  {
+    path: 'reports',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/reports/reports.component').then((m) => m.ReportsComponent)
+  },
+  {
     path: 'compliance/check',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -56,6 +82,24 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { roles: ['SystemAdministrator'] },
     loadComponent: () => import('./features/admin/admin-org-units.component').then((m) => m.AdminOrgUnitsComponent)
+  },
+  {
+    path: 'admin/rules',
+    canActivate: [authGuard],
+    data: { roles: ['SystemAdministrator'] },
+    loadComponent: () => import('./features/admin/admin-rules.component').then((m) => m.AdminRulesComponent)
+  },
+  {
+    path: 'admin/notifications',
+    canActivate: [authGuard],
+    data: { roles: ['SystemAdministrator'] },
+    loadComponent: () => import('./features/admin/admin-notification-templates.component').then((m) => m.AdminNotificationTemplatesComponent)
+  },
+  {
+    path: 'admin/system-config',
+    canActivate: [authGuard],
+    data: { roles: ['SystemAdministrator'] },
+    loadComponent: () => import('./features/admin/admin-system-config.component').then((m) => m.AdminSystemConfigComponent)
   },
   { path: '**', redirectTo: 'dashboard' }
 ];

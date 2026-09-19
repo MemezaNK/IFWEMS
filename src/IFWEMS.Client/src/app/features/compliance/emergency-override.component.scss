@@ -14,11 +14,14 @@
   }
 
   input,
+  select,
   textarea {
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-family: inherit;
+    font-size: 1rem;
+    background: #fff;
   }
 
   button {

@@ -1,0 +1,24 @@
+<div class="notifications">
+  <h1>Notifications</h1>
+
+  @if (isLoading()) {
+    <p>Loading notifications...</p>
+  } @else if (notifications().length === 0) {
+    <p>No notifications.</p>
+  } @else {
+    <ul class="notification-list">
+      @for (notification of notifications(); track notification.id) {
+        <li [class.unread]="!notification.isRead">
+          <div class="subject">{{ notification.subject }}</div>
+          <div class="body">{{ notification.body }}</div>
+          <div class="meta">
+            <span>{{ notification.sentAtUtc ? (notification.sentAtUtc | date:'medium') : 'Pending' }}</span>
+            @if (!notification.isRead) {
+              <button type="button" (click)="markRead(notification.id)">Mark as Read</button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>
