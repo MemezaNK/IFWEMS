@@ -121,6 +121,28 @@ jobs:
       - name: Smoke test
         shell: powershell
         run: |
-          Start-Sleep -Seconds 5
-          $resp = Invoke-WebRequest -Uri "${{ vars.SITE_HEALTH_URL }}" -UseBasicParsing
-          if ($resp.StatusCode -ne 200) { throw "Health check failed: $($resp.StatusCode)" }
+          # The app pool's w3wp.exe process (and in-process Kestrel/EF Core startup inside it)
+          # can take well over 5 seconds to cold-start after Start-WebAppPool, especially on
+          # the very first successful start -- IIS returns 503 for that whole window, which is
+          # not a real failure. Poll for up to 60s instead of a single one-shot check.
+          $uri = "${{ vars.SITE_HEALTH_URL }}"
+          $maxWaitSeconds = 60
+          $intervalSeconds = 5
+          $deadline = (Get-Date).AddSeconds($maxWaitSeconds)
+          $lastError = $null
+          $resp = $null
+          while ((Get-Date) -lt $deadline) {
+              Start-Sleep -Seconds $intervalSeconds
+              try {
+                  $resp = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 10
+                  if ($resp.StatusCode -eq 200) { break }
+                  $lastError = "HTTP $($resp.StatusCode)"
+              } catch {
+                  $lastError = $_.Exception.Message
+              }
+              Write-Host "Health check not ready yet ($lastError), retrying..."
+          }
+          if (-not $resp -or $resp.StatusCode -ne 200) {
+              throw "Health check failed after ${maxWaitSeconds}s: $lastError"
+          }
+          Write-Host "Health check passed: $($resp.StatusCode)"
