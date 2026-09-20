@@ -99,10 +99,13 @@ CI/CD itself.
 or restart the runner service afterwards (`Restart-Service actions.runner.*` or
 `./svc.cmd stop` then `./svc.cmd start` from the runner folder). Windows services only see the
 `PATH` that existed when they started, so if `dotnet`/`node`/`npm` were installed after the
-runner service, its jobs will fail with `dotnet : The term 'dotnet' is not recognized...` even
-though `dotnet --version` works fine in an interactive PowerShell window. If it still can't find
-`dotnet` after a service restart, reboot the VPS once to guarantee the machine-wide `PATH`
-propagates to services, then restart the runner service again.
+runner service, its jobs will fail with `dotnet : The term 'dotnet' is not recognized...` or
+`'npm' is not recognized as an internal or external command...` even though `dotnet --version`/
+`npm --version` work fine in an interactive PowerShell window. **Every time you install or
+upgrade dotnet/Node after the runner service already exists, you must restart the runner
+service** for it to see the new `PATH`. If it still can't find the command after a service
+restart, reboot the VPS once to guarantee the machine-wide `PATH` propagates to services, then
+start the runner service again.
 
 Also install the EF Core CLI tool globally so the workflow's migration step works:
 
