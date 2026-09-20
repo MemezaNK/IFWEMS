@@ -83,6 +83,19 @@ public class SlaController : ControllerBase
             .Where(c => c.Status != CaseStatus.Closed)
             .ToListAsync(cancellationToken);
 
+        var openCaseIds = openCases.Select(c => c.Id).ToList();
+
+        // Batch-load the most recent transition into each case's current status in a single
+        // grouped query, rather than one round-trip per case (which previously took 15s+ for
+        // a few hundred open cases and violated NFR-02's <3s response time budget).
+        var lastTransitions = await _dbContext.CaseStatusHistories.AsNoTracking()
+            .Where(h => openCaseIds.Contains(h.CaseId))
+            .GroupBy(h => new { h.CaseId, h.ToStatus })
+            .Select(g => new { g.Key.CaseId, g.Key.ToStatus, ChangedAtUtc = g.Max(h => h.ChangedAtUtc) })
+            .ToListAsync(cancellationToken);
+
+        var lastTransitionLookup = lastTransitions.ToDictionary(t => (t.CaseId, t.ToStatus), t => t.ChangedAtUtc);
+
         var results = new List<OverdueCaseDto>();
         var now = DateTime.UtcNow;
 
@@ -91,11 +104,9 @@ public class SlaController : ControllerBase
             var policy = activePolicies.SingleOrDefault(p => p.CaseType == caseEntity.CaseType && p.Status == caseEntity.Status);
             if (policy is null) continue;
 
-            var lastTransition = await _dbContext.CaseStatusHistories.AsNoTracking()
-                .Where(h => h.CaseId == caseEntity.Id && h.ToStatus == caseEntity.Status)
-                .OrderByDescending(h => h.ChangedAtUtc)
-                .Select(h => (DateTime?)h.ChangedAtUtc)
-                .FirstOrDefaultAsync(cancellationToken) ?? caseEntity.CreatedAtUtc;
+            var lastTransition = lastTransitionLookup.TryGetValue((caseEntity.Id, caseEntity.Status), out var changedAtUtc)
+                ? changedAtUtc
+                : caseEntity.CreatedAtUtc;
 
             var hoursInStatus = (int)(now - lastTransition).TotalHours;
             if (hoursInStatus < policy.MaxDurationHours) continue;

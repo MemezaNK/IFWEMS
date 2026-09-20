@@ -1,0 +1,17 @@
+.admin-rules {
+  .create-card h2 { margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600; }
+  .error-text { color: #c62828; font-size: 0.85rem; margin: 0 0 12px 0; }
+
+  .rule-description {
+    font-size: 0.78rem;
+    color: rgba(0, 0, 0, 0.5);
+    margin-top: 2px;
+  }
+
+  code {
+    background: #f1f3f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.82rem;
+  }
+}

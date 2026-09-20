@@ -1,0 +1,140 @@
+<div class="page-container admin-system-config">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>System Configuration</h1>
+      <p class="page-subtitle">Manage system-wide settings and parameters without requiring a redeploy.</p>
+    </div>
+    <div class="page-actions">
+      <button mat-flat-button color="primary" (click)="toggleCreateForm()">
+        <mat-icon>{{ showCreateForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showCreateForm() ? 'Cancel' : 'New Setting' }}
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  }
+
+  @if (showCreateForm()) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Create Setting</h2>
+        <form (ngSubmit)="createSetting()" #settingForm="ngForm">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Category</mat-label>
+              <input matInput name="category" [(ngModel)]="newSetting.category" placeholder="e.g. Contracts" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Key</mat-label>
+              <input matInput name="key" [(ngModel)]="newSetting.key" placeholder="e.g. ContractUtilisationAlertThresholdPercent" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Value</mat-label>
+              <input matInput name="value" [(ngModel)]="newSetting.value" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <input matInput name="description" [(ngModel)]="newSetting.description" />
+            </mat-form-field>
+          </div>
+
+          <div class="inline-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="settingForm.invalid || isSaving()">
+              {{ isSaving() ? 'Saving…' : 'Create Setting' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (isLoading()) {
+    <mat-card class="section-card">
+      <mat-card-content>
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading settings&hellip;</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else if (settings().length === 0) {
+    <mat-card class="section-card">
+      <mat-card-content>
+        <div class="empty-state">
+          <mat-icon>settings</mat-icon>
+          <p>No system settings configured yet.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    @for (group of groupedSettings; track group.category) {
+      <mat-card class="section-card">
+        <mat-card-content>
+          <h2>{{ group.category }}</h2>
+          <table mat-table [dataSource]="group.items" class="data-table">
+            <ng-container matColumnDef="key">
+              <th mat-header-cell *matHeaderCellDef>Key</th>
+              <td mat-cell *matCellDef="let s"><code>{{ s.key }}</code></td>
+            </ng-container>
+            <ng-container matColumnDef="value">
+              <th mat-header-cell *matHeaderCellDef>Value</th>
+              <td mat-cell *matCellDef="let s">
+                @if (editingId() === s.id) {
+                  <mat-form-field appearance="outline" class="inline-field">
+                    <input matInput [(ngModel)]="editValue" name="editValue-{{s.id}}" />
+                  </mat-form-field>
+                } @else {
+                  {{ s.value }}
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <td mat-cell *matCellDef="let s">
+                @if (editingId() === s.id) {
+                  <mat-form-field appearance="outline" class="inline-field">
+                    <input matInput [(ngModel)]="editDescription" name="editDescription-{{s.id}}" />
+                  </mat-form-field>
+                } @else {
+                  {{ s.description || '—' }}
+                }
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="category">
+              <th mat-header-cell *matHeaderCellDef>Category</th>
+              <td mat-cell *matCellDef="let s">{{ s.category }}</td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="cell-numeric">Actions</th>
+              <td mat-cell *matCellDef="let s" class="cell-numeric">
+                @if (editingId() === s.id) {
+                  <button mat-icon-button (click)="saveEdit(s.id)" [disabled]="isSaving()" matTooltip="Save">
+                    <mat-icon>check</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="cancelEdit()" matTooltip="Cancel">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                } @else {
+                  <button mat-icon-button (click)="startEdit(s)" matTooltip="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="deleteSetting(s)" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="['key', 'value', 'description', 'actions']"></tr>
+            <tr mat-row *matRowDef="let row; columns: ['key', 'value', 'description', 'actions'];"></tr>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

@@ -1,24 +1,50 @@
 .reports {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.error {
-  color: #b00020;
-}
-
-.report-list {
-  list-style: none;
-  padding: 0;
-
-  li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 8px;
+  .error-text {
+    color: #c62828;
+    background: #fdecea;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
   }
+
+  .register-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .register-card {
+    margin-bottom: 0;
+    display: flex;
+
+    mat-card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+  }
+
+  .register-icon {
+    color: var(--ifwems-gold-600);
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  h2 {
+    margin: 4px 0 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ifwems-navy-900);
+  }
+
+  p {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    color: rgba(0, 0, 0, 0.6);
+    flex: 1;
+  }
+
+  button { align-self: flex-start; }
 }

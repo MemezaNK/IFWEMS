@@ -24,6 +24,7 @@ public class IfwemsDbContext : DbContext
     public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CaseAssessment> CaseAssessments => Set<CaseAssessment>();
     public DbSet<Investigation> Investigations => Set<Investigation>();
@@ -60,6 +61,8 @@ public class IfwemsDbContext : DbContext
             .IsUnique();
         modelBuilder.Entity<CaseStatusHistory>().HasKey(h => h.Id);
         modelBuilder.Entity<CaseStatusHistory>().HasIndex(h => h.CaseId);
+        modelBuilder.Entity<SystemSetting>().HasIndex(s => s.Key).IsUnique();
+        modelBuilder.Entity<NotificationTemplate>().HasIndex(t => t.Code).IsUnique();
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {

@@ -1,0 +1,36 @@
+<div class="global-search">
+  <mat-icon class="search-icon">search</mat-icon>
+  <input
+    type="text"
+    class="search-input"
+    placeholder="Search cases, suppliers, contracts&hellip;"
+    [ngModel]="query()"
+    (ngModelChange)="query.set($event)"
+    (focus)="onFocus()"
+    (input)="onInput()"
+    aria-label="Global search" />
+
+  @if (isOpen() && query().trim().length > 0) {
+    <div class="search-panel">
+      @if (isLoading()) {
+        <div class="search-loading">
+          <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading&hellip;</span>
+        </div>
+      } @else if (results().length === 0) {
+        <div class="search-empty">No matches for &ldquo;{{ query() }}&rdquo;.</div>
+      } @else {
+        @for (result of results(); track result.title + result.kind) {
+          <a class="search-result" [routerLink]="result.link" (click)="select()">
+            <mat-icon>{{ result.icon }}</mat-icon>
+            <div class="search-result-text">
+              <span class="search-result-title">{{ result.title }}</span>
+              <span class="search-result-subtitle">{{ result.subtitle }}</span>
+            </div>
+            <span class="search-result-kind">{{ result.kind }}</span>
+          </a>
+        }
+      }
+    </div>
+  }
+</div>

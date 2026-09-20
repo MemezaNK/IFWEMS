@@ -21,6 +21,10 @@ export class AdminHomeComponent {
   readonly cards: AdminCard[] = [
     { title: 'Users', description: 'Create, view and deactivate user accounts.', icon: 'people', link: '/admin/users' },
     { title: 'Roles', description: 'Manage roles and their permissions.', icon: 'admin_panel_settings', link: '/admin/roles' },
-    { title: 'Organisation Units', description: 'Manage the organisational hierarchy.', icon: 'account_tree', link: '/admin/org-units' }
+    { title: 'Organisation Units', description: 'Manage the organisational hierarchy.', icon: 'account_tree', link: '/admin/org-units' },
+    { title: 'Compliance Rules', description: 'Create, version and approve compliance rules.', icon: 'rule', link: '/admin/rules' },
+    { title: 'SLA Policies', description: 'Configure turnaround targets and view SLA breaches.', icon: 'schedule', link: '/admin/sla' },
+    { title: 'Notification Templates', description: 'Manage email and system notification templates.', icon: 'email', link: '/admin/notifications' },
+    { title: 'System Configuration', description: 'Manage system-wide settings and parameters.', icon: 'settings', link: '/admin/system-config' }
   ];
 }

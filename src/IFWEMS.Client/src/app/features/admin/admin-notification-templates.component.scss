@@ -1,0 +1,6 @@
+.admin-notification-templates {
+  .create-card h2 { margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600; }
+  .error-text { color: #c62828; font-size: 0.85rem; margin: 0 0 12px 0; }
+  .full-width { grid-column: 1 / -1; }
+  code { background: rgba(0, 0, 0, 0.06); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+}

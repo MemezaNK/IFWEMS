@@ -5,6 +5,8 @@
     </button>
     <span class="app-title"><span class="brand-mark">i</span>Track <strong>Fraud &amp; Waste</strong></span>
     <span class="spacer"></span>
+    <app-global-search></app-global-search>
+    <span class="spacer-small"></span>
     <button mat-icon-button (click)="toggleTheme()" [attr.aria-label]="isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'">
       <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
@@ -21,55 +23,88 @@
   </mat-toolbar>
 
   <mat-sidenav-container class="app-shell">
-    <mat-sidenav #sidenav mode="side" opened class="app-nav" aria-label="Primary navigation">
-      <mat-nav-list>
-        @for (link of visibleLinks(); track link.label) {
-          @if (link.children && link.children.length > 0) {
-            <!-- Collapsible menu item with children -->
-            <div class="nav-section">
-              <button 
-                mat-list-item 
-                class="nav-parent"
-                (click)="toggleExpanded(link.label)"
-                [class.expanded]="isExpanded(link.label)">
+    <mat-sidenav
+      #sidenav
+      mode="side"
+      opened
+      class="app-nav"
+      [class.nav-collapsed]="navCollapsed()"
+      aria-label="Primary navigation">
+      <div class="nav-scroll">
+        <mat-nav-list>
+          @for (link of visibleLinks(); track link.label) {
+            @if (link.children && link.children.length > 0) {
+              <!-- Collapsible menu item with children -->
+              <div class="nav-section">
+                <button
+                  mat-list-item
+                  class="nav-parent"
+                  [matTooltip]="link.label"
+                  matTooltipPosition="right"
+                  [matTooltipDisabled]="!navCollapsed()"
+                  (click)="toggleExpanded(link)"
+                  [class.expanded]="isExpanded(link)"
+                  [class.active-group]="isGroupActive(link)">
+                  <span class="nav-item-row">
+                    <mat-icon class="nav-item-icon">{{ link.icon }}</mat-icon>
+                    <span class="nav-item-label">{{ link.label }}</span>
+                    <mat-icon class="expand-icon">{{ isExpanded(link) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                  </span>
+                </button>
+                @if (isExpanded(link) && !navCollapsed()) {
+                  <mat-nav-list class="nav-children">
+                    @for (child of visibleChildren(link); track child.path) {
+                      <a
+                        mat-list-item
+                        [routerLink]="child.path"
+                        routerLinkActive="active-link"
+                        class="nav-child">
+                        <span class="nav-item-row">
+                          <mat-icon class="nav-item-icon">{{ child.icon }}</mat-icon>
+                          <span class="nav-item-label">{{ child.label }}</span>
+                        </span>
+                      </a>
+                    }
+                  </mat-nav-list>
+                }
+              </div>
+            } @else {
+              <!-- Simple menu item without children -->
+              <a
+                mat-list-item
+                [routerLink]="link.path"
+                routerLinkActive="active-link"
+                class="nav-link"
+                [matTooltip]="link.label"
+                matTooltipPosition="right"
+                [matTooltipDisabled]="!navCollapsed()">
                 <span class="nav-item-row">
                   <mat-icon class="nav-item-icon">{{ link.icon }}</mat-icon>
                   <span class="nav-item-label">{{ link.label }}</span>
-                  <mat-icon class="expand-icon">{{ isExpanded(link.label) ? 'expand_less' : 'expand_more' }}</mat-icon>
                 </span>
-              </button>
-              @if (isExpanded(link.label)) {
-                <mat-nav-list class="nav-children">
-                  @for (child of visibleChildren(link); track child.path) {
-                    <a 
-                      mat-list-item 
-                      [routerLink]="child.path" 
-                      routerLinkActive="active-link"
-                      class="nav-child">
-                      <span class="nav-item-row">
-                        <mat-icon class="nav-item-icon">{{ child.icon }}</mat-icon>
-                        <span class="nav-item-label">{{ child.label }}</span>
-                      </span>
-                    </a>
-                  }
-                </mat-nav-list>
-              }
-            </div>
-          } @else {
-            <!-- Simple menu item without children -->
-            <a 
-              mat-list-item 
-              [routerLink]="link.path" 
-              routerLinkActive="active-link"
-              class="nav-link">
-              <span class="nav-item-row">
-                <mat-icon class="nav-item-icon">{{ link.icon }}</mat-icon>
-                <span class="nav-item-label">{{ link.label }}</span>
-              </span>
-            </a>
+              </a>
+            }
           }
+        </mat-nav-list>
+      </div>
+
+      <div class="nav-footer">
+        @if (!navCollapsed()) {
+          <div class="nav-user-chip" [matTooltip]="currentUser()?.username ?? ''" matTooltipPosition="right">
+            <span class="nav-user-avatar">{{ (currentUser()?.username ?? '?').charAt(0).toUpperCase() }}</span>
+            <span class="nav-user-name">{{ currentUser()?.username }}</span>
+          </div>
         }
-      </mat-nav-list>
+        <button
+          mat-icon-button
+          class="nav-collapse-toggle"
+          (click)="toggleNavCollapsed()"
+          [matTooltip]="navCollapsed() ? 'Expand menu' : 'Collapse menu'"
+          matTooltipPosition="right"
+          [attr.aria-label]="navCollapsed() ? 'Expand navigation menu' : 'Collapse navigation menu'">
+          <mat-icon>{{ navCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
+      </div>
     </mat-sidenav>
 
     <mat-sidenav-content class="app-content">
@@ -79,4 +114,3 @@
 } @else {
   <router-outlet />
 }
-

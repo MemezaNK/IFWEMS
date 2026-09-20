@@ -1,60 +1,143 @@
-<div class="suppliers">
-  <h1>Supplier Risk Management</h1>
+<div class="page-container suppliers">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Supplier Risk Management</h1>
+      <p class="page-subtitle">Supplier register with deviation, case and concentration risk profiling.</p>
+    </div>
+    <div class="page-actions">
+      <button mat-flat-button color="primary" (click)="toggleCreateForm()">
+        <mat-icon>{{ showCreateForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showCreateForm() ? 'Cancel' : 'Create Supplier' }}
+      </button>
+    </div>
+  </div>
 
-  <form class="create-form" (ngSubmit)="createSupplier()" #supplierForm="ngForm">
-    <h2>Create Supplier</h2>
-    @if (errorMessage()) {
-      <p class="error">{{ errorMessage() }}</p>
-    }
+  @if (showCreateForm()) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Create Supplier</h2>
+        @if (errorMessage()) {
+          <p class="error-text">{{ errorMessage() }}</p>
+        }
+        <form (ngSubmit)="createSupplier()" #supplierForm="ngForm">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Supplier Code</mat-label>
+              <input matInput name="supplierCode" [(ngModel)]="newSupplier.supplierCode" required />
+            </mat-form-field>
 
-    <label for="supplierCode">Supplier Code</label>
-    <input id="supplierCode" name="supplierCode" [(ngModel)]="newSupplier.supplierCode" required />
+            <mat-form-field appearance="outline">
+              <mat-label>Name</mat-label>
+              <input matInput name="name" [(ngModel)]="newSupplier.name" required />
+            </mat-form-field>
 
-    <label for="name">Name</label>
-    <input id="name" name="name" [(ngModel)]="newSupplier.name" required />
+            <mat-form-field appearance="outline">
+              <mat-label>Registration Number (optional)</mat-label>
+              <input matInput name="registrationNumber" [(ngModel)]="newSupplier.registrationNumber" />
+            </mat-form-field>
+          </div>
 
-    <label for="registrationNumber">Registration Number (optional)</label>
-    <input id="registrationNumber" name="registrationNumber" [(ngModel)]="newSupplier.registrationNumber" />
-
-    <button type="submit" [disabled]="supplierForm.invalid || isSaving()">
-      {{ isSaving() ? 'Saving...' : 'Create Supplier' }}
-    </button>
-  </form>
+          <div class="inline-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="supplierForm.invalid || isSaving()">
+              {{ isSaving() ? 'Saving…' : 'Create Supplier' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
 
   @if (riskProfile(); as profile) {
-    <div class="risk-profile">
-      <h2>Risk Profile: {{ profile.name }}</h2>
-      <p><strong>Rating:</strong> {{ profile.riskRating }}</p>
-      <p><strong>Deviation Count:</strong> {{ profile.deviationCount }}</p>
-      <p><strong>Case Count:</strong> {{ profile.caseCount }}</p>
-      <p><strong>Contract Count:</strong> {{ profile.contractCount }}</p>
-      <p><strong>Total Contract Value:</strong> {{ profile.totalContractValue | currency:'ZAR' }}</p>
-      <p><strong>Concentration:</strong> {{ profile.concentrationPercentage }}%</p>
-    </div>
+    <mat-card class="section-card risk-profile-card">
+      <mat-card-content>
+        <div class="risk-profile-header">
+          <h2><mat-icon>shield</mat-icon> Risk Profile: {{ profile.name }}</h2>
+          <button mat-icon-button (click)="closeRiskProfile()" aria-label="Close risk profile">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <div class="risk-profile-grid">
+          <div class="risk-item">
+            <span class="risk-label">Rating</span>
+            <span class="risk-chip" [ngClass]="'risk-' + profile.riskRating">{{ profile.riskRating }}</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-label">Deviation Count</span>
+            <span class="risk-value">{{ profile.deviationCount }}</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-label">Case Count</span>
+            <span class="risk-value">{{ profile.caseCount }}</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-label">Contract Count</span>
+            <span class="risk-value">{{ profile.contractCount }}</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-label">Total Contract Value</span>
+            <span class="risk-value">{{ profile.totalContractValue | currency:'ZAR' }}</span>
+          </div>
+          <div class="risk-item">
+            <span class="risk-label">Concentration</span>
+            <span class="risk-value">{{ profile.concentrationPercentage }}%</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
   }
 
-  @if (isLoading()) {
-    <p>Loading suppliers...</p>
-  } @else {
-    <table class="suppliers-table">
-      <thead>
-        <tr>
-          <th>Code</th>
-          <th>Name</th>
-          <th>Registration Number</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (supplier of suppliers(); track supplier.id) {
-          <tr>
-            <td>{{ supplier.supplierCode }}</td>
-            <td>{{ supplier.name }}</td>
-            <td>{{ supplier.registrationNumber ?? '—' }}</td>
-            <td><button type="button" (click)="viewRiskProfile(supplier.id)">View Risk Profile</button></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  }
+  <mat-card class="section-card">
+    <mat-card-content>
+      <div class="toolbar-row">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search suppliers</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Supplier name or code" />
+        </mat-form-field>
+        <span class="spacer-flex"></span>
+        <span class="result-count">{{ filteredSuppliers().length }} of {{ suppliers().length }} supplier(s)</span>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading suppliers&hellip;</span>
+        </div>
+      } @else if (filteredSuppliers().length === 0) {
+        <div class="empty-state">
+          <mat-icon>business</mat-icon>
+          <p>{{ suppliers().length === 0 ? 'No suppliers have been captured yet.' : 'No suppliers match your search.' }}</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="filteredSuppliers()" class="data-table">
+          <ng-container matColumnDef="supplierCode">
+            <th mat-header-cell *matHeaderCellDef>Code</th>
+            <td mat-cell *matCellDef="let s">{{ s.supplierCode }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Name</th>
+            <td mat-cell *matCellDef="let s">{{ s.name }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="registrationNumber">
+            <th mat-header-cell *matHeaderCellDef>Registration Number</th>
+            <td mat-cell *matCellDef="let s">{{ s.registrationNumber ?? '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let s">
+              <button mat-button color="primary" (click)="viewRiskProfile(s.id)" matTooltip="View risk profile">
+                <mat-icon>shield</mat-icon> Risk Profile
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
 </div>

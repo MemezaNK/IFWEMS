@@ -116,7 +116,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Behind IIS on the VPS we may not have a certificate/domain yet, so HTTPS redirection is
+// opt-in via config (defaults to true so local/dev behavior is unchanged).
+if (builder.Configuration.GetValue("UseHttpsRedirection", true))
+{
+    app.UseHttpsRedirection();
+}
+
+// Serve the Angular production build (copied into wwwroot at publish time - see
+// IFWEMS.Api.csproj's BuildAngularApp target) and fall back to index.html for client-side
+// routes so deep links / refreshes work. This keeps the API and SPA on a single origin, so
+// no CORS configuration is needed.
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // Correlation ID (NFR 4.1 #4): accept an inbound X-Correlation-ID or generate one, echo it
 // back on the response, and attach it to every log line emitted while handling the request
@@ -151,6 +163,8 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
 {
     Predicate = check => check.Tags.Contains("ready")
 });
+
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

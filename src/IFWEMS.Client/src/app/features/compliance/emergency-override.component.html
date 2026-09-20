@@ -1,59 +1,95 @@
-<div class="emergency-override">
-  <h1>Emergency Procurement Override</h1>
-  <p class="hint">
-    Capturing an override automatically raises a post-transaction compliance review case (FR-013).
-  </p>
+<div class="page-container emergency-override">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Emergency Procurement Override</h1>
+      <p class="page-subtitle">Capturing an override automatically raises a post-transaction compliance review case.</p>
+    </div>
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <label for="transactionReference">Transaction Reference</label>
-    <input id="transactionReference" formControlName="transactionReference" />
+  <mat-card class="section-card warning-card">
+    <mat-card-content>
+      <mat-icon>warning</mat-icon>
+      <span>Use this only for genuine clinical/service-continuity emergencies. Every override is reviewed after the fact — it never bypasses compliance monitoring silently.</span>
+    </mat-card-content>
+  </mat-card>
 
-    <label for="orgUnitId">Org Unit</label>
-    <select id="orgUnitId" formControlName="orgUnitId">
-      <option value="" disabled>Select an org unit&hellip;</option>
-      @for (orgUnit of orgUnits(); track orgUnit.id) {
-        <option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</option>
-      }
-    </select>
+  <mat-card class="section-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Transaction Reference</mat-label>
+            <input matInput formControlName="transactionReference" />
+          </mat-form-field>
 
-    <label for="supplierId">Supplier (optional)</label>
-    <select id="supplierId" formControlName="supplierId">
-      <option value="">None</option>
-      @for (supplier of suppliers(); track supplier.id) {
-        <option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</option>
-      }
-    </select>
+          <mat-form-field appearance="outline">
+            <mat-label>Org Unit</mat-label>
+            <mat-select formControlName="orgUnitId">
+              @for (orgUnit of orgUnits(); track orgUnit.id) {
+                <mat-option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-    <label for="amount">Amount</label>
-    <input id="amount" type="number" formControlName="amount" />
+          <mat-form-field appearance="outline">
+            <mat-label>Supplier (optional)</mat-label>
+            <mat-select formControlName="supplierId">
+              <mat-option [value]="''">None</mat-option>
+              @for (supplier of suppliers(); track supplier.id) {
+                <mat-option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-    <label for="emergencyCategory">Emergency Category</label>
-    <input id="emergencyCategory" formControlName="emergencyCategory" placeholder="e.g. PatientCareEmergency" />
+          <mat-form-field appearance="outline">
+            <mat-label>Amount</mat-label>
+            <span matPrefix>R&nbsp;</span>
+            <input matInput type="number" formControlName="amount" />
+          </mat-form-field>
 
-    <label for="reason">Reason</label>
-    <textarea id="reason" formControlName="reason" rows="3"></textarea>
+          <mat-form-field appearance="outline">
+            <mat-label>Emergency Category</mat-label>
+            <input matInput formControlName="emergencyCategory" placeholder="e.g. PatientCareEmergency" />
+          </mat-form-field>
 
-    <label for="evidenceDocumentId">Evidence Document</label>
-    <select id="evidenceDocumentId" formControlName="evidenceDocumentId">
-      <option value="" disabled>Select a document&hellip;</option>
-      @for (document of documents(); track document.id) {
-        <option [value]="document.id">{{ document.fileName }} (v{{ document.version }})</option>
-      }
-    </select>
+          <mat-form-field appearance="outline">
+            <mat-label>Commodity Code (optional)</mat-label>
+            <input matInput formControlName="commodityCode" />
+          </mat-form-field>
 
-    <label for="commodityCode">Commodity Code (optional)</label>
-    <input id="commodityCode" formControlName="commodityCode" />
+          <mat-form-field appearance="outline" class="form-grid-full">
+            <mat-label>Reason</mat-label>
+            <textarea matInput formControlName="reason" rows="3"></textarea>
+          </mat-form-field>
 
-    @if (errorMessage()) {
-      <p class="error">{{ errorMessage() }}</p>
-    }
+          <mat-form-field appearance="outline" class="form-grid-full">
+            <mat-label>Evidence Document</mat-label>
+            <mat-select formControlName="evidenceDocumentId">
+              @for (document of documents(); track document.id) {
+                <mat-option [value]="document.id">{{ document.fileName }} (v{{ document.version }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
 
-    @if (transactionId()) {
-      <p class="success">Override captured. Transaction Id: {{ transactionId() }}</p>
-    }
+        @if (errorMessage()) {
+          <p class="error-text">{{ errorMessage() }}</p>
+        }
 
-    <button type="submit" [disabled]="form.invalid || isSubmitting()">
-      {{ isSubmitting() ? 'Submitting...' : 'Capture Override' }}
-    </button>
-  </form>
+        @if (transactionId()) {
+          <p class="success-text"><mat-icon>check_circle</mat-icon> Override captured. Transaction Id: {{ transactionId() }}</p>
+        }
+
+        <div class="inline-actions">
+          <button mat-flat-button color="warn" type="submit" [disabled]="form.invalid || isSubmitting()">
+            @if (isSubmitting()) {
+              <span>Submitting&hellip;</span>
+            } @else {
+              <mat-icon>warning</mat-icon> Capture Override
+            }
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
 </div>

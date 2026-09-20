@@ -19,6 +19,10 @@
   flex: 1 1 auto;
 }
 
+.spacer-small {
+  width: 12px;
+}
+
 .user-menu-header {
   padding: 12px 16px;
   font-size: 0.85rem;
@@ -26,25 +30,143 @@
   color: var(--ifwems-navy-900);
 }
 
+:host ::ng-deep .mat-toolbar.mat-primary {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+  z-index: 3;
+  position: relative;
+}
+
 .app-shell {
   height: calc(100vh - 64px);
 }
 
+// ---------------------------------------------------------------------------
+// Sidenav: clean, modern "app rail" — rounded pill items, generous breathing
+// room, a collapsible icon-only mode, and a pinned footer with the collapse
+// control and current user.
+// ---------------------------------------------------------------------------
 .app-nav {
-  width: 260px;
-  background: #0a142d;
-  border-right: 1px solid rgba(234, 171, 20, 0.15);
+  width: 264px;
+  background: linear-gradient(180deg, #0e1c40 0%, #0a142d 100%);
+  border-right: none;
+  box-shadow: 1px 0 0 rgba(234, 171, 20, 0.12);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.nav-collapsed {
+    width: 76px;
+
+    .nav-item-label,
+    .expand-icon,
+    .nav-user-name {
+      display: none;
+    }
+
+    .nav-item-row {
+      justify-content: center;
+    }
+
+    .nav-item-icon {
+      margin-right: 0;
+    }
+
+    .nav-parent,
+    .nav-link {
+      padding: 0 !important;
+      margin: 3px 12px;
+    }
+
+    .nav-footer {
+      justify-content: center;
+    }
+  }
 
   ::ng-deep {
-    .mat-mdc-nav-list { padding: 8px 0; }
+    .mat-mdc-nav-list { padding: 0; }
     .mat-mdc-list-item {
       font-size: 0.8125rem;
-      color: rgba(255, 255, 255, 0.947);
+      color: rgba(255, 255, 255, 0.9);
       height: auto;
-      min-height: 38px;
+      min-height: 42px;
       padding: 0 !important;
     }
     .mdc-list-item__content { padding: 0 !important; }
+  }
+}
+
+.nav-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 12px 8px;
+
+  // Slim, unobtrusive scrollbar for the rail.
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
+
+.nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.nav-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.nav-user-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(234, 171, 20, 0.18);
+  color: var(--ifwems-gold-500);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-user-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-collapse-toggle {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.55) !important;
+
+  &:hover {
+    color: var(--ifwems-gold-500) !important;
+  }
+
+  mat-icon {
+    font-size: 1.2rem;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 }
 
@@ -57,9 +179,9 @@
 .active-link {
   font-weight: 600 !important;
   color: var(--ifwems-gold-500) !important;
-  background-color: rgba(234, 171, 20, 0.15) !important;
-  border-left: 3px solid var(--ifwems-gold-500);
-  padding-left: 13px !important;
+  background-color: rgba(234, 171, 20, 0.16) !important;
+
+  .nav-item-icon { color: var(--ifwems-gold-500) !important; }
 }
 
 // Shared row layout for icon + label (+ optional chevron)
@@ -71,11 +193,12 @@
 
 .nav-item-icon {
   margin-right: 12px;
-  font-size: 1.1rem;
-  width: 1.1rem;
-  height: 1.1rem;
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
   flex-shrink: 0;
   color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s ease;
 }
 
 .nav-item-label {
@@ -84,59 +207,55 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 400;
 }
 
 // Collapsible menu styles
 .nav-section {
   padding: 0;
-  margin: 0;
+  margin: 0 0 2px;
 }
 
 .nav-parent {
   width: 100%;
-  padding: 9px 16px !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  padding: 10px 14px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   font-weight: 400;
   font-size: 0.8125rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   margin: 2px 0;
   border: none;
-  border-radius: 0;
+  border-radius: 10px;
   background-color: transparent !important;
-  border-left: 3px solid transparent;
   cursor: pointer;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.95) !important;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #fff !important;
 
-    .nav-item-icon { color: rgba(255, 255, 255, 0.8); }
+    .nav-item-icon { color: rgba(255, 255, 255, 0.85); }
   }
 
-  &.expanded {
-    background-color: rgba(234, 171, 20, 0.1);
+  &.expanded,
+  &.active-group {
+    background-color: rgba(234, 171, 20, 0.12);
     color: var(--ifwems-gold-500) !important;
-    border-left-color: var(--ifwems-gold-500);
 
     .nav-item-icon,
-    .nav-item-label {
-      color: var(--ifwems-gold-500);
-    }
-
+    .nav-item-label,
     .expand-icon {
       color: var(--ifwems-gold-500);
     }
   }
 
   .expand-icon {
-    font-size: 1.1rem;
-    width: 1.1rem;
-    height: 1.1rem;
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
     margin-left: 8px;
     flex-shrink: 0;
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.25s ease;
     color: rgba(255, 255, 255, 0.45);
   }
 
@@ -147,50 +266,47 @@
 
 .nav-children {
   background-color: transparent;
-  padding: 0 !important;
-  margin: 0 !important;
+  padding: 2px 0 4px !important;
+  margin: 0 0 0 14px !important;
   border-radius: 0;
   overflow: visible;
-  border-left: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
 
   ::ng-deep .mat-mdc-list-item {
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     margin: 0;
   }
 
   .nav-child {
-    width: 100%;
-    padding: 7px 16px 7px 40px !important;
-    color: rgba(255, 255, 255, 0.7) !important;
+    width: calc(100% - 8px);
+    margin: 1px 0 1px 8px;
+    padding: 8px 12px !important;
+    color: rgba(255, 255, 255, 0.72) !important;
     font-weight: 400;
-    transition: all 0.2s ease;
-    margin: 0;
+    transition: background-color 0.15s ease, color 0.15s ease;
     border: none;
-    border-radius: 0;
-    border-left: 3px solid transparent;
+    border-radius: 8px;
     cursor: pointer;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.06) !important;
-      color: rgba(255, 255, 255, 0.9) !important;
+      background-color: rgba(255, 255, 255, 0.07) !important;
+      color: #fff !important;
 
-      .nav-item-icon { color: rgba(255, 255, 255, 0.75); }
+      .nav-item-icon { color: rgba(255, 255, 255, 0.8); }
     }
 
     &.active-link {
-      background-color: rgba(234, 171, 20, 0.1) !important;
+      background-color: rgba(234, 171, 20, 0.16) !important;
       color: var(--ifwems-gold-500) !important;
       font-weight: 600;
-      border-left-color: var(--ifwems-gold-500);
-      padding-left: 37px !important;
 
       .nav-item-label { color: var(--ifwems-gold-500); }
     }
 
     .nav-item-icon {
-      font-size: 0.95rem;
-      width: 0.95rem;
-      height: 0.95rem;
+      font-size: 1rem;
+      width: 1rem;
+      height: 1rem;
       color: rgba(255, 255, 255, 0.45);
     }
 
@@ -202,30 +318,27 @@
 
 .nav-link {
   width: 100%;
-  padding: 9px 16px !important;
+  padding: 10px 14px !important;
   margin: 2px 0;
-  border-radius: 0;
+  border-radius: 10px;
   border: none;
-  border-left: 3px solid transparent;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
   font-weight: 400;
   font-size: 0.8125rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   cursor: pointer;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.95) !important;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #fff !important;
 
-    .nav-item-icon { color: rgba(255, 255, 255, 0.8); }
+    .nav-item-icon { color: rgba(255, 255, 255, 0.85); }
   }
 
   &.active-link {
-    background-color: rgba(234, 171, 20, 0.1) !important;
+    background-color: rgba(234, 171, 20, 0.16) !important;
     color: var(--ifwems-gold-500) !important;
     font-weight: 600;
-    border-left-color: var(--ifwems-gold-500);
-    padding-left: 13px !important;
 
     .nav-item-icon,
     .nav-item-label {

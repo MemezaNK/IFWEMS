@@ -1,0 +1,142 @@
+<div class="page-container admin-sla">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>SLA Policies</h1>
+      <p class="page-subtitle">Configurable turnaround targets per case type and lifecycle stage, with automatic breach detection.</p>
+    </div>
+    <div class="page-actions">
+      <button mat-flat-button color="primary" (click)="toggleCreateForm()">
+        <mat-icon>{{ showCreateForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showCreateForm() ? 'Cancel' : 'New Policy' }}
+      </button>
+    </div>
+  </div>
+
+  @if (showCreateForm()) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Create SLA Policy</h2>
+        @if (errorMessage()) {
+          <p class="error-text">{{ errorMessage() }}</p>
+        }
+        <form (ngSubmit)="createPolicy()" #policyForm="ngForm">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Case Type</mat-label>
+              <mat-select name="caseType" [(ngModel)]="newPolicy.caseType" required>
+                @for (type of caseTypes; track type) {
+                  <mat-option [value]="type">{{ type | enumLabel }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Case Status</mat-label>
+              <mat-select name="status" [(ngModel)]="newPolicy.status" required>
+                @for (status of caseStatuses; track status) {
+                  <mat-option [value]="status">{{ status | enumLabel }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Max Duration (hours)</mat-label>
+              <input matInput type="number" name="maxDurationHours" [(ngModel)]="newPolicy.maxDurationHours" min="1" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Effective From</mat-label>
+              <input matInput type="date" name="effectiveFromUtc" [(ngModel)]="newPolicy.effectiveFromUtc" required />
+            </mat-form-field>
+          </div>
+
+          <div class="inline-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="policyForm.invalid || isSaving()">
+              {{ isSaving() ? 'Saving…' : 'Create Policy' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (overdueCases().length > 0) {
+    <mat-card class="section-card overdue-card">
+      <mat-card-content>
+        <h2><mat-icon>warning</mat-icon> Cases Breaching SLA ({{ overdueCases().length }})</h2>
+        <table mat-table [dataSource]="overdueCases()" class="data-table">
+          <ng-container matColumnDef="caseNumber">
+            <th mat-header-cell *matHeaderCellDef>Case Number</th>
+            <td mat-cell *matCellDef="let c">{{ c.caseNumber }}</td>
+          </ng-container>
+          <ng-container matColumnDef="caseType">
+            <th mat-header-cell *matHeaderCellDef>Type</th>
+            <td mat-cell *matCellDef="let c">{{ c.caseType | enumLabel }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let c"><span class="status-chip" [ngClass]="'status-' + c.status">{{ c.status | enumLabel }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="hoursInStatus">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Hours in Status</th>
+            <td mat-cell *matCellDef="let c" class="cell-numeric">{{ c.hoursInStatus }}</td>
+          </ng-container>
+          <ng-container matColumnDef="slaMaxHours">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">SLA (hrs)</th>
+            <td mat-cell *matCellDef="let c" class="cell-numeric">{{ c.slaMaxHours }}</td>
+          </ng-container>
+          <ng-container matColumnDef="hoursOverdue">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Overdue (hrs)</th>
+            <td mat-cell *matCellDef="let c" class="cell-numeric"><span class="risk-chip risk-RED">{{ c.hoursOverdue }}</span></td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="overdueColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: overdueColumns;"></tr>
+        </table>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card class="section-card">
+    <mat-card-content>
+      <h2>Configured Policies</h2>
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading policies&hellip;</span>
+        </div>
+      } @else if (policies().length === 0) {
+        <div class="empty-state">
+          <mat-icon>schedule</mat-icon>
+          <p>No SLA policies configured yet.</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="policies()" class="data-table">
+          <ng-container matColumnDef="caseType">
+            <th mat-header-cell *matHeaderCellDef>Case Type</th>
+            <td mat-cell *matCellDef="let p">{{ p.caseType | enumLabel }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Stage</th>
+            <td mat-cell *matCellDef="let p">{{ p.status | enumLabel }}</td>
+          </ng-container>
+          <ng-container matColumnDef="maxDurationHours">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Max Duration (hrs)</th>
+            <td mat-cell *matCellDef="let p" class="cell-numeric">{{ p.maxDurationHours }}</td>
+          </ng-container>
+          <ng-container matColumnDef="isActive">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let p">
+              <span class="status-chip" [ngClass]="p.isActive ? 'status-Active' : 'status-Closed'">{{ p.isActive ? 'Active' : 'Superseded' }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="effectiveFromUtc">
+            <th mat-header-cell *matHeaderCellDef>Effective From</th>
+            <td mat-cell *matCellDef="let p">{{ p.effectiveFromUtc | date:'mediumDate' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="policyColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: policyColumns;"></tr>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

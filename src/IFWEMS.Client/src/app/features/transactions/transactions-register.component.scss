@@ -1,0 +1,15 @@
+.transactions-register {
+  .filters-card .inline-actions { margin-top: 12px; }
+  .no-alert { color: rgba(0, 0, 0, 0.3); }
+
+  .rule-chip {
+    display: inline-block;
+    background: #fdecea;
+    color: #c62828;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin: 2px 4px 2px 0;
+  }
+}

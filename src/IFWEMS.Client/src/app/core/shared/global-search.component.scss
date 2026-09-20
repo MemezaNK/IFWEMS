@@ -1,0 +1,119 @@
+.global-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 36px;
+  width: 280px;
+  max-width: 40vw;
+  transition: background 0.2s ease;
+
+  &:focus-within {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.search-icon {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.85rem;
+  width: 100%;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.search-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 360px;
+  max-width: 80vw;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fff;
+  color: #212121;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  padding: 6px;
+}
+
+.search-loading, .search-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 0.85rem;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(23, 48, 110, 0.06);
+  }
+
+  mat-icon {
+    color: var(--ifwems-navy-700);
+    flex-shrink: 0;
+  }
+}
+
+.search-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-subtitle {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-kind {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .global-search { width: 160px; }
+}

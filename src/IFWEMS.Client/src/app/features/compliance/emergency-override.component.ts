@@ -1,6 +1,12 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { ComplianceService } from '../../core/compliance/compliance.service';
 import { AdminService } from '../../core/admin/admin.service';
 import { SuppliersService } from '../../core/suppliers/suppliers.service';
@@ -12,7 +18,16 @@ import { DocumentDto } from '../../core/models/document.models';
 @Component({
   selector: 'app-emergency-override',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule
+  ],
   templateUrl: './emergency-override.component.html',
   styleUrl: './emergency-override.component.scss'
 })

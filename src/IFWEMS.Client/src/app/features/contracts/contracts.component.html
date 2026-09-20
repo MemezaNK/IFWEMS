@@ -1,68 +1,147 @@
-<div class="contracts">
-  <h1>Contract Management</h1>
+<div class="page-container contracts">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Contract Management</h1>
+      <p class="page-subtitle">Value, utilisation and expiry tracking across all supplier contracts.</p>
+    </div>
+    <div class="page-actions">
+      <button mat-flat-button color="primary" (click)="toggleCreateForm()">
+        <mat-icon>{{ showCreateForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showCreateForm() ? 'Cancel' : 'Create Contract' }}
+      </button>
+    </div>
+  </div>
 
-  <form class="create-form" (ngSubmit)="createContract()" #contractForm="ngForm">
-    <h2>Create Contract</h2>
-    @if (errorMessage()) {
-      <p class="error">{{ errorMessage() }}</p>
-    }
-
-    <label for="contractNumber">Contract Number</label>
-    <input id="contractNumber" name="contractNumber" [(ngModel)]="newContract.contractNumber" required />
-
-    <label for="title">Title</label>
-    <input id="title" name="title" [(ngModel)]="newContract.title" required />
-
-    <label for="supplierId">Supplier</label>
-    <select id="supplierId" name="supplierId" [(ngModel)]="newContract.supplierId" required>
-      <option value="" disabled>Select a supplier&hellip;</option>
-      @for (supplier of suppliers(); track supplier.id) {
-        <option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</option>
-      }
-    </select>
-
-    <label for="originalValue">Original Value</label>
-    <input id="originalValue" type="number" name="originalValue" [(ngModel)]="newContract.originalValue" required min="0.01" />
-
-    <label for="startDateUtc">Start Date</label>
-    <input id="startDateUtc" type="date" name="startDateUtc" [(ngModel)]="newContract.startDateUtc" required />
-
-    <label for="expiryDateUtc">Expiry Date</label>
-    <input id="expiryDateUtc" type="date" name="expiryDateUtc" [(ngModel)]="newContract.expiryDateUtc" required />
-
-    <button type="submit" [disabled]="contractForm.invalid || isSaving()">
-      {{ isSaving() ? 'Saving...' : 'Create Contract' }}
-    </button>
-  </form>
-
-  @if (isLoading()) {
-    <p>Loading contracts...</p>
-  } @else {
-    <table class="contracts-table">
-      <thead>
-        <tr>
-          <th>Contract Number</th>
-          <th>Title</th>
-          <th>Supplier</th>
-          <th>Current Value</th>
-          <th>Utilisation %</th>
-          <th>Days to Expiry</th>
-          <th>Alert</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (contract of contracts(); track contract.id) {
-          <tr>
-            <td>{{ contract.contractNumber }}</td>
-            <td>{{ contract.title }}</td>
-            <td>{{ supplierName(contract.supplierId) }}</td>
-            <td>{{ contract.currentValue | currency:'ZAR' }}</td>
-            <td>{{ contract.utilisationPercentage }}%</td>
-            <td>{{ contract.daysToExpiry }}</td>
-            <td>{{ contract.alertLevel ?? '—' }}</td>
-          </tr>
+  @if (showCreateForm()) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Create Contract</h2>
+        @if (errorMessage()) {
+          <p class="error-text">{{ errorMessage() }}</p>
         }
-      </tbody>
-    </table>
+        <form (ngSubmit)="createContract()" #contractForm="ngForm">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Contract Number</mat-label>
+              <input matInput name="contractNumber" [(ngModel)]="newContract.contractNumber" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Title</mat-label>
+              <input matInput name="title" [(ngModel)]="newContract.title" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Supplier</mat-label>
+              <mat-select name="supplierId" [(ngModel)]="newContract.supplierId" required>
+                @for (supplier of suppliers(); track supplier.id) {
+                  <mat-option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Original Value</mat-label>
+              <span matPrefix>R&nbsp;</span>
+              <input matInput type="number" name="originalValue" [(ngModel)]="newContract.originalValue" required min="0.01" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Start Date</mat-label>
+              <input matInput type="date" name="startDateUtc" [(ngModel)]="newContract.startDateUtc" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Expiry Date</mat-label>
+              <input matInput type="date" name="expiryDateUtc" [(ngModel)]="newContract.expiryDateUtc" required />
+            </mat-form-field>
+          </div>
+
+          <div class="inline-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="contractForm.invalid || isSaving()">
+              {{ isSaving() ? 'Saving…' : 'Create Contract' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
   }
+
+  <mat-card class="section-card">
+    <mat-card-content>
+      <div class="toolbar-row">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search contracts</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" placeholder="Contract number, title or supplier" />
+        </mat-form-field>
+        <span class="spacer-flex"></span>
+        <span class="result-count">{{ filteredContracts().length }} of {{ contracts().length }} contract(s)</span>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading contracts&hellip;</span>
+        </div>
+      } @else if (filteredContracts().length === 0) {
+        <div class="empty-state">
+          <mat-icon>description</mat-icon>
+          <p>{{ contracts().length === 0 ? 'No contracts have been captured yet.' : 'No contracts match your search.' }}</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="filteredContracts()" class="data-table">
+          <ng-container matColumnDef="contractNumber">
+            <th mat-header-cell *matHeaderCellDef>Contract Number</th>
+            <td mat-cell *matCellDef="let c">{{ c.contractNumber }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef>Title</th>
+            <td mat-cell *matCellDef="let c">{{ c.title }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="supplier">
+            <th mat-header-cell *matHeaderCellDef>Supplier</th>
+            <td mat-cell *matCellDef="let c">{{ supplierName(c.supplierId) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="currentValue">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Current Value</th>
+            <td mat-cell *matCellDef="let c" class="cell-numeric">{{ c.currentValue | currency:'ZAR' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="utilisationPercentage">
+            <th mat-header-cell *matHeaderCellDef>Utilisation</th>
+            <td mat-cell *matCellDef="let c">
+              <div class="utilisation-bar-wrap" [matTooltip]="c.utilisationPercentage + '% utilised'">
+                <div class="utilisation-bar" [style.width.%]="c.utilisationPercentage < 100 ? c.utilisationPercentage : 100"
+                     [class.over]="c.utilisationPercentage >= 90"></div>
+              </div>
+              <span class="utilisation-label">{{ c.utilisationPercentage }}%</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="daysToExpiry">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Days to Expiry</th>
+            <td mat-cell *matCellDef="let c" class="cell-numeric">{{ c.daysToExpiry }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="alertLevel">
+            <th mat-header-cell *matHeaderCellDef>Alert</th>
+            <td mat-cell *matCellDef="let c">
+              @if (c.alertLevel) {
+                <span class="risk-chip" [ngClass]="'risk-' + alertSeverity(c.alertLevel)">{{ c.alertLevel }}</span>
+              } @else {
+                <span class="no-alert">—</span>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
 </div>

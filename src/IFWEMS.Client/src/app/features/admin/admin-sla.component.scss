@@ -1,0 +1,6 @@
+.admin-sla {
+  .create-card h2, .overdue-card h2 { margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .error-text { color: #c62828; font-size: 0.85rem; margin: 0 0 12px 0; }
+  .overdue-card { border-left: 4px solid #c62828; }
+  .overdue-card h2 mat-icon { color: #c62828; }
+}

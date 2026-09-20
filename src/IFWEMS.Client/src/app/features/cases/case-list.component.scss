@@ -1,44 +1,19 @@
 .case-list {
-  padding: 2rem;
-
-  .create-form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: 480px;
-    margin-bottom: 32px;
-
-    label {
-      font-weight: 600;
-    }
-
-    input,
-    select,
-    textarea {
-      padding: 8px;
-      font-size: 14px;
-    }
-
-    button {
-      margin-top: 12px;
-      padding: 8px 16px;
-      align-self: flex-start;
-    }
+  .create-card h2 {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
   }
 
-  .error {
-    color: #b00020;
+  .error-text {
+    color: #c62828;
+    font-size: 0.85rem;
+    margin: 0 0 12px 0;
   }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  th,
-  td {
-    text-align: left;
-    padding: 0.5rem;
-    border-bottom: 1px solid #e5e7eb;
+  .result-count {
+    font-size: 0.8rem;
+    color: rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
   }
 }

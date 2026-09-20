@@ -1,12 +1,16 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationsService } from '../../core/notifications/notifications.service';
 import { NotificationDto } from '../../core/models/notification.models';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.scss'
 })
@@ -31,7 +35,17 @@ export class NotificationsComponent implements OnInit {
     });
   }
 
+  get unreadCount(): number {
+    return this.notifications().filter((n) => !n.isRead).length;
+  }
+
   markRead(id: string): void {
     this.notificationsService.markRead(id).subscribe(() => this.load());
+  }
+
+  markAllRead(): void {
+    const unread = this.notifications().filter((n) => !n.isRead);
+    unread.forEach((n) => this.notificationsService.markRead(n.id).subscribe());
+    setTimeout(() => this.load(), 300);
   }
 }

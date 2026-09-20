@@ -1,0 +1,132 @@
+<div class="page-container admin-notification-templates">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Notification Templates</h1>
+      <p class="page-subtitle">Manage the in-app-editable email and system notification templates used for case assignment, SLA warnings, escalations and overrides.</p>
+    </div>
+    <div class="page-actions">
+      <button mat-flat-button color="primary" (click)="toggleCreateForm()">
+        <mat-icon>{{ showCreateForm() ? 'close' : 'add' }}</mat-icon>
+        {{ showCreateForm() ? 'Cancel' : 'New Template' }}
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  }
+
+  @if (showCreateForm()) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Create Template</h2>
+        <form (ngSubmit)="createTemplate()" #templateForm="ngForm">
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Code</mat-label>
+              <input matInput name="code" [(ngModel)]="newTemplate.code" placeholder="e.g. CASE_ASSIGNED" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Subject</mat-label>
+              <input matInput name="subject" [(ngModel)]="newTemplate.subject" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Body (HTML)</mat-label>
+              <textarea matInput name="bodyHtml" rows="4" [(ngModel)]="newTemplate.bodyHtml" required></textarea>
+            </mat-form-field>
+
+            <mat-checkbox name="isActive" [(ngModel)]="newTemplate.isActive">Active</mat-checkbox>
+          </div>
+
+          <div class="inline-actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="templateForm.invalid || isSaving()">
+              {{ isSaving() ? 'Saving…' : 'Create Template' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (editingId(); as editId) {
+    <mat-card class="section-card create-card">
+      <mat-card-content>
+        <h2>Edit Template</h2>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Subject</mat-label>
+            <input matInput [(ngModel)]="editTemplate.subject" name="editSubject" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Body (HTML)</mat-label>
+            <textarea matInput rows="4" [(ngModel)]="editTemplate.bodyHtml" name="editBodyHtml"></textarea>
+          </mat-form-field>
+
+          <mat-checkbox [(ngModel)]="editTemplate.isActive" name="editIsActive">Active</mat-checkbox>
+        </div>
+
+        <div class="inline-actions">
+          <button mat-flat-button color="primary" [disabled]="isSaving()" (click)="saveEdit(editId)">
+            {{ isSaving() ? 'Saving…' : 'Save Changes' }}
+          </button>
+          <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <mat-card class="section-card">
+    <mat-card-content>
+      <h2>Configured Templates</h2>
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading templates&hellip;</span>
+        </div>
+      } @else if (templates().length === 0) {
+        <div class="empty-state">
+          <mat-icon>email</mat-icon>
+          <p>No notification templates configured yet.</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="templates()" class="data-table">
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef>Code</th>
+            <td mat-cell *matCellDef="let t"><code>{{ t.code }}</code></td>
+          </ng-container>
+          <ng-container matColumnDef="subject">
+            <th mat-header-cell *matHeaderCellDef>Subject</th>
+            <td mat-cell *matCellDef="let t">{{ t.subject }}</td>
+          </ng-container>
+          <ng-container matColumnDef="isActive">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let t">
+              <span class="status-chip" [ngClass]="t.isActive ? 'status-Active' : 'status-Closed'">{{ t.isActive ? 'Active' : 'Inactive' }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="modifiedAtUtc">
+            <th mat-header-cell *matHeaderCellDef>Last Modified</th>
+            <td mat-cell *matCellDef="let t">{{ t.modifiedAtUtc ? (t.modifiedAtUtc | date:'medium') : '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Actions</th>
+            <td mat-cell *matCellDef="let t" class="cell-numeric">
+              <button mat-icon-button (click)="startEdit(t)" matTooltip="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="deleteTemplate(t)" matTooltip="Delete">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

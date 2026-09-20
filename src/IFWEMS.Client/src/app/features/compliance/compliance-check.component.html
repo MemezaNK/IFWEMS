@@ -1,63 +1,113 @@
-<div class="compliance-check">
-  <h1>Real-Time Compliance Check</h1>
+<div class="page-container compliance-check">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Real-Time Compliance Check</h1>
+      <p class="page-subtitle">Screen a transaction against active rules before it is paid.</p>
+    </div>
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <label for="transactionReference">Transaction Reference</label>
-    <input id="transactionReference" formControlName="transactionReference" />
+  <mat-card class="section-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Transaction Reference</mat-label>
+            <input matInput formControlName="transactionReference" />
+          </mat-form-field>
 
-    <label for="orgUnitId">Org Unit</label>
-    <select id="orgUnitId" formControlName="orgUnitId">
-      <option value="" disabled>Select an org unit&hellip;</option>
-      @for (orgUnit of orgUnits(); track orgUnit.id) {
-        <option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</option>
-      }
-    </select>
+          <mat-form-field appearance="outline">
+            <mat-label>Org Unit</mat-label>
+            <mat-select formControlName="orgUnitId">
+              @for (orgUnit of orgUnits(); track orgUnit.id) {
+                <mat-option [value]="orgUnit.id">{{ orgUnit.name }} ({{ orgUnit.code }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-    <label for="supplierId">Supplier (optional)</label>
-    <select id="supplierId" formControlName="supplierId">
-      <option value="">None</option>
-      @for (supplier of suppliers(); track supplier.id) {
-        <option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</option>
-      }
-    </select>
+          <mat-form-field appearance="outline">
+            <mat-label>Supplier (optional)</mat-label>
+            <mat-select formControlName="supplierId">
+              <mat-option [value]="''">None</mat-option>
+              @for (supplier of suppliers(); track supplier.id) {
+                <mat-option [value]="supplier.id">{{ supplier.name }} ({{ supplier.supplierCode }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-    <label for="contractId">Contract (optional)</label>
-    <select id="contractId" formControlName="contractId">
-      <option value="">None</option>
-      @for (contract of contracts(); track contract.id) {
-        <option [value]="contract.id">{{ contract.title }} ({{ contract.contractNumber }})</option>
-      }
-    </select>
+          <mat-form-field appearance="outline">
+            <mat-label>Contract (optional)</mat-label>
+            <mat-select formControlName="contractId">
+              <mat-option [value]="''">None</mat-option>
+              @for (contract of contracts(); track contract.id) {
+                <mat-option [value]="contract.id">{{ contract.title }} ({{ contract.contractNumber }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
 
-    <label for="amount">Amount</label>
-    <input id="amount" type="number" formControlName="amount" />
+          <mat-form-field appearance="outline">
+            <mat-label>Amount</mat-label>
+            <span matPrefix>R&nbsp;</span>
+            <input matInput type="number" formControlName="amount" />
+          </mat-form-field>
 
-    <label for="invoiceReference">Invoice Reference (optional)</label>
-    <input id="invoiceReference" formControlName="invoiceReference" />
+          <mat-form-field appearance="outline">
+            <mat-label>Invoice Reference (optional)</mat-label>
+            <input matInput formControlName="invoiceReference" />
+          </mat-form-field>
 
-    <label for="purchaseOrderDateUtc">Purchase Order Date (optional)</label>
-    <input id="purchaseOrderDateUtc" type="date" formControlName="purchaseOrderDateUtc" />
+          <mat-form-field appearance="outline">
+            <mat-label>Purchase Order Date (optional)</mat-label>
+            <input matInput type="date" formControlName="purchaseOrderDateUtc" />
+          </mat-form-field>
 
-    <label for="commodityCode">Commodity Code (optional)</label>
-    <input id="commodityCode" formControlName="commodityCode" />
+          <mat-form-field appearance="outline">
+            <mat-label>Commodity Code (optional)</mat-label>
+            <input matInput formControlName="commodityCode" />
+          </mat-form-field>
+        </div>
 
-    @if (errorMessage()) {
-      <p class="error">{{ errorMessage() }}</p>
-    }
+        @if (errorMessage()) {
+          <p class="error-text">{{ errorMessage() }}</p>
+        }
 
-    <button type="submit" [disabled]="form.invalid || isChecking()">
-      {{ isChecking() ? 'Checking...' : 'Run Check' }}
-    </button>
-  </form>
+        <div class="inline-actions">
+          <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || isChecking()">
+            @if (isChecking()) {
+              <span>Checking&hellip;</span>
+            } @else {
+              <mat-icon>fact_check</mat-icon> Run Check
+            }
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
 
   @if (result(); as r) {
-    <div class="result" [class]="r.riskRating.toLowerCase()">
-      <p><strong>Risk Score:</strong> {{ r.riskScore }}</p>
-      <p><strong>Risk Rating:</strong> {{ r.riskRating }}</p>
-      <p><strong>Recommended Action:</strong> {{ r.recommendedAction }}</p>
-      @if (r.failedRuleCodes.length) {
-        <p><strong>Failed Rules:</strong> {{ r.failedRuleCodes.join(', ') }}</p>
-      }
-    </div>
+    <mat-card class="section-card result-card" [ngClass]="'result-' + r.riskRating">
+      <mat-card-content>
+        <div class="result-headline">
+          <span class="risk-chip large" [ngClass]="'risk-' + r.riskRating">{{ r.riskRating }}</span>
+          <div class="result-score">
+            <span class="result-score-value">{{ r.riskScore }}</span>
+            <span class="result-score-label">Risk Score</span>
+          </div>
+          <div class="result-action">
+            <span class="result-action-label">Recommended Action</span>
+            <span class="result-action-value">{{ r.recommendedAction }}</span>
+          </div>
+        </div>
+        @if (r.failedRuleCodes.length) {
+          <div class="failed-rules">
+            <span class="failed-rules-label">Failed Rules</span>
+            <div class="failed-rules-chips">
+              @for (code of r.failedRuleCodes; track code) {
+                <span class="rule-chip">{{ code }}</span>
+              }
+            </div>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
   }
 </div>

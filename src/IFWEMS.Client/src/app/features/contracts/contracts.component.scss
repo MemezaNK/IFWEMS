@@ -1,45 +1,32 @@
 .contracts {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px;
-}
+  .create-card h2 { margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 600; }
+  .error-text { color: #c62828; font-size: 0.85rem; margin: 0 0 12px 0; }
+  .result-count { font-size: 0.8rem; color: rgba(0, 0, 0, 0.5); white-space: nowrap; }
 
-.create-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 480px;
-  margin-bottom: 32px;
-
-  label {
-    font-weight: 600;
+  .utilisation-bar-wrap {
+    display: inline-block;
+    width: 90px;
+    height: 8px;
+    background: #eceff1;
+    border-radius: 4px;
+    overflow: hidden;
+    vertical-align: middle;
+    margin-right: 8px;
   }
 
-  input,
-  select {
-    padding: 8px;
-    font-size: 14px;
+  .utilisation-bar {
+    height: 100%;
+    background: #2e7d32;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+
+    &.over { background: #c62828; }
   }
 
-  button {
-    margin-top: 12px;
-    padding: 8px 16px;
-    align-self: flex-start;
+  .utilisation-label {
+    font-size: 0.8rem;
+    color: rgba(0, 0, 0, 0.65);
   }
-}
 
-.error {
-  color: #b00020;
-}
-
-.contracts-table {
-  width: 100%;
-  border-collapse: collapse;
-
-  th,
-  td {
-    text-align: left;
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
-  }
+  .no-alert { color: rgba(0, 0, 0, 0.3); }
 }

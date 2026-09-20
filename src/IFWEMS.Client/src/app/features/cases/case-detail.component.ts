@@ -2,6 +2,15 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CaseService } from '../../core/cases/case.service';
 import { CaseDto, CaseStatus } from '../../core/models/case.models';
 import { InvestigationsService } from '../../core/investigations/investigations.service';
@@ -15,11 +24,26 @@ import { ControlDto } from '../../core/models/control.models';
 import { DocumentsService } from '../../core/documents/documents.service';
 import { DocumentDto } from '../../core/models/document.models';
 import { AuthService } from '../../core/auth/auth.service';
+import { EnumLabelPipe } from '../../core/shared/enum-label.pipe';
 
 @Component({
   selector: 'app-case-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatExpansionModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    EnumLabelPipe
+  ],
   templateUrl: './case-detail.component.html',
   styleUrl: './case-detail.component.scss'
 })

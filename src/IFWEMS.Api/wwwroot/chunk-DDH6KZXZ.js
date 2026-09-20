@@ -1,0 +1,1 @@
+import{ma as t}from"./chunk-GQSRVINB.js";var n=class r{transform(e){return e?e.replace(/([a-z0-9])([A-Z])/g,"$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g,"$1 $2").trim():""}static \u0275fac=function(i){return new(i||r)};static \u0275pipe=t({name:"enumLabel",type:r,pure:!0,standalone:!0})};export{n as a};

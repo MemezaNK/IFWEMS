@@ -1,23 +1,31 @@
-<div class="reports">
-  <h1>Reports &amp; Registers</h1>
-  <p class="hint">Export operational registers to CSV (Excel-compatible).</p>
+<div class="page-container reports">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Reports &amp; Registers</h1>
+      <p class="page-subtitle">Export operational registers to CSV (Excel-compatible).</p>
+    </div>
+  </div>
 
   @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
+    <p class="error-text">{{ errorMessage() }}</p>
   }
 
-  <ul class="report-list">
-    <li>
-      <span>Irregular / Fruitless &amp; Wasteful Expenditure Case Register</span>
-      <button type="button" (click)="downloadCases()">Download CSV</button>
-    </li>
-    <li>
-      <span>Recovery Register</span>
-      <button type="button" (click)="downloadRecoveries()">Download CSV</button>
-    </li>
-    <li>
-      <span>Contract Exception / Register</span>
-      <button type="button" (click)="downloadContracts()">Download CSV</button>
-    </li>
-  </ul>
+  <div class="register-grid">
+    @for (register of registers; track register.key) {
+      <mat-card class="section-card register-card">
+        <mat-card-content>
+          <mat-icon class="register-icon">{{ register.icon }}</mat-icon>
+          <h2>{{ register.title }}</h2>
+          <p>{{ register.description }}</p>
+          <button mat-stroked-button color="primary" [disabled]="downloadingKey() === register.key" (click)="download(register.key)">
+            @if (downloadingKey() === register.key) {
+              <span>Preparing&hellip;</span>
+            } @else {
+              <mat-icon>download</mat-icon> Download CSV
+            }
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
 </div>

@@ -64,6 +64,27 @@ public class ComplianceRuleEngine : IComplianceRuleEngine
             _ => "PASS"
         };
 
+        // Persist every screened transaction (FR-010; Section 6.3 financial_transaction),
+        // not only emergency overrides. Without this record, (a) there is no register of
+        // what was screened and why, and (b) the duplicate-invoice/repeat-emergency/
+        // splitting rule handlers below -- which query _dbContext.Transactions for recent
+        // history -- would never see a routine (non-override) transaction, so those checks
+        // could never actually fire against real procurement-splitting or duplicate-invoice
+        // patterns in normal traffic.
+        _dbContext.Transactions.Add(new Transaction
+        {
+            TransactionReference = request.TransactionReference,
+            OrgUnitId = request.OrgUnitId,
+            SupplierId = request.SupplierId,
+            Amount = request.Amount,
+            RiskScore = riskScore,
+            RiskRating = rating,
+            RecommendedAction = Enum.Parse<ComplianceAction>(action, ignoreCase: true),
+            FailedRuleCodes = failedRuleCodes.Count > 0 ? string.Join(',', failedRuleCodes) : null,
+            IsEmergencyOverride = false
+        });
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
         return new TransactionCheckResult(riskScore, rating, failedRuleCodes, action);
     }
 

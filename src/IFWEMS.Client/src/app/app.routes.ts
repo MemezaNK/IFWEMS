@@ -60,6 +60,18 @@ export const routes: Routes = [
       import('./features/compliance/emergency-override.component').then((m) => m.EmergencyOverrideComponent)
   },
   {
+    path: 'compliance/transactions',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/transactions/transactions-register.component').then((m) => m.TransactionsRegisterComponent)
+  },
+  {
+    path: 'audit',
+    canActivate: [authGuard],
+    data: { roles: ['ReadOnlyAuditor', 'ComplianceOfficer', 'SystemAdministrator'] },
+    loadComponent: () => import('./features/audit/audit-log.component').then((m) => m.AuditLogComponent)
+  },
+  {
     path: 'admin',
     canActivate: [authGuard],
     data: { roles: ['SystemAdministrator'] },
@@ -88,6 +100,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { roles: ['SystemAdministrator'] },
     loadComponent: () => import('./features/admin/admin-rules.component').then((m) => m.AdminRulesComponent)
+  },
+  {
+    path: 'admin/sla',
+    canActivate: [authGuard],
+    data: { roles: ['SystemAdministrator'] },
+    loadComponent: () => import('./features/admin/admin-sla.component').then((m) => m.AdminSlaComponent)
   },
   {
     path: 'admin/notifications',

@@ -1,0 +1,121 @@
+<div class="page-container transactions-register">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Transaction Screening Register</h1>
+      <p class="page-subtitle">Every transaction evaluated by the compliance engine — routine checks and emergency overrides alike — with its score and outcome.</p>
+    </div>
+  </div>
+
+  <mat-card class="section-card filters-card">
+    <mat-card-content>
+      <div class="form-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Risk Rating</mat-label>
+          <mat-select [(ngModel)]="filterRiskRating">
+            <mat-option value="">All ratings</mat-option>
+            <mat-option value="GREEN">Green</mat-option>
+            <mat-option value="AMBER">Amber</mat-option>
+            <mat-option value="RED">Red</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Search reference</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [(ngModel)]="filterSearch" placeholder="Transaction reference" />
+        </mat-form-field>
+      </div>
+      <div class="inline-actions">
+        <button mat-button (click)="clearFilters()">Clear</button>
+        <button mat-flat-button color="primary" (click)="applyFilters()">
+          <mat-icon>filter_alt</mat-icon> Apply Filters
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="section-card">
+    <mat-card-content>
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading transactions&hellip;</span>
+        </div>
+      } @else if (transactions().length === 0) {
+        <div class="empty-state">
+          <mat-icon>receipt_long</mat-icon>
+          <p>No screened transactions match the current filters.</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="transactions()" class="data-table">
+          <ng-container matColumnDef="createdAtUtc">
+            <th mat-header-cell *matHeaderCellDef>Screened</th>
+            <td mat-cell *matCellDef="let t">{{ t.createdAtUtc | date:'short' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="transactionReference">
+            <th mat-header-cell *matHeaderCellDef>Reference</th>
+            <td mat-cell *matCellDef="let t">{{ t.transactionReference }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="supplierName">
+            <th mat-header-cell *matHeaderCellDef>Supplier</th>
+            <td mat-cell *matCellDef="let t">{{ t.supplierName ?? '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="amount">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">Amount</th>
+            <td mat-cell *matCellDef="let t" class="cell-numeric">{{ t.amount | currency:'ZAR' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="riskRating">
+            <th mat-header-cell *matHeaderCellDef>Risk</th>
+            <td mat-cell *matCellDef="let t">
+              <span class="risk-chip" [ngClass]="'risk-' + t.riskRating">{{ t.riskRating }} ({{ t.riskScore }})</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="recommendedAction">
+            <th mat-header-cell *matHeaderCellDef>Action</th>
+            <td mat-cell *matCellDef="let t">{{ t.recommendedAction }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="failedRuleCodes">
+            <th mat-header-cell *matHeaderCellDef>Failed Rules</th>
+            <td mat-cell *matCellDef="let t">
+              @if (t.failedRuleCodes.length === 0) {
+                <span class="no-alert">—</span>
+              } @else {
+                @for (code of t.failedRuleCodes; track code) {
+                  <span class="rule-chip">{{ code }}</span>
+                }
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="source">
+            <th mat-header-cell *matHeaderCellDef>Source</th>
+            <td mat-cell *matCellDef="let t">
+              @if (t.isEmergencyOverride) {
+                <span class="status-chip status-ConsequenceManagement">Emergency Override</span>
+              } @else {
+                <span class="status-chip status-Active">Routine Check</span>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        <mat-paginator
+          [length]="totalCount()"
+          [pageSize]="pageSize"
+          [pageIndex]="page - 1"
+          [pageSizeOptions]="[25, 50, 100]"
+          (page)="onPageChange($event)">
+        </mat-paginator>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

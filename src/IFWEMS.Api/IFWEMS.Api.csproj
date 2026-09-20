@@ -27,4 +27,25 @@
     <ProjectReference Include="..\IFWEMS.Application\IFWEMS.Application.csproj" />
   </ItemGroup>
 
+  <!--
+    Builds the Angular client and copies its production output into wwwroot so that a single
+    `dotnet publish` produces a self-contained deployable site (API + SPA on one origin).
+    Skips itself when SkipAngularBuild=true is passed (useful for API-only test/CI builds).
+  -->
+  <PropertyGroup>
+    <ClientDir>$(MSBuildProjectDirectory)\..\IFWEMS.Client</ClientDir>
+  </PropertyGroup>
+
+  <Target Name="BuildAngularApp" BeforeTargets="Publish" Condition="'$(SkipAngularBuild)' != 'true'">
+    <Message Importance="high" Text="Installing Angular client dependencies..." />
+    <Exec Command="npm ci" WorkingDirectory="$(ClientDir)" />
+    <Message Importance="high" Text="Building Angular client (production)..." />
+    <Exec Command="npm run build -- --configuration production" WorkingDirectory="$(ClientDir)" />
+    <ItemGroup>
+      <AngularDist Include="$(ClientDir)\dist\ifwems.client\browser\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AngularDist)" DestinationFolder="$(MSBuildProjectDirectory)\wwwroot\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
+

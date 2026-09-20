@@ -1,156 +1,254 @@
-<div class="case-detail">
-  <a routerLink="/cases">&larr; Back to Cases</a>
+<div class="page-container case-detail">
+  <a routerLink="/cases" class="back-link"><mat-icon>arrow_back</mat-icon> Back to Cases</a>
 
   @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
+    <p class="error-text">{{ errorMessage() }}</p>
   }
 
   @if (caseDetail(); as c) {
-    <h1>{{ c.caseNumber }} — {{ c.title }}</h1>
-    <p class="meta">
-      <strong>Type:</strong> {{ c.caseType }} &nbsp;|&nbsp;
-      <strong>Status:</strong> {{ c.status }} &nbsp;|&nbsp;
-      <strong>Amount Involved:</strong> {{ c.amountInvolved | currency:'ZAR' }} &nbsp;|&nbsp;
-      <strong>Recoverable:</strong> {{ c.recoverableAmount | currency:'ZAR' }} &nbsp;|&nbsp;
-      <strong>Recovered:</strong> {{ c.recoveredAmount | currency:'ZAR' }}
-    </p>
-    @if (c.description) {
-      <p>{{ c.description }}</p>
-    }
-
-    <section class="panel">
-      <h2>Change Case Status (FR-024)</h2>
-      <div class="inline-form">
-        <select [(ngModel)]="newStatus" name="newStatus">
-          <option value="" disabled>Select new status&hellip;</option>
-          @for (status of statuses; track status) {
-            <option [value]="status">{{ status }}</option>
-          }
-        </select>
-        <input placeholder="Reason" [(ngModel)]="statusReason" name="statusReason" />
-        <button type="button" [disabled]="!newStatus" (click)="changeStatus()">Change Status</button>
+    <div class="page-header">
+      <div class="page-heading">
+        <h1>{{ c.caseNumber }} <span class="case-title-sep">&mdash;</span> {{ c.title }}</h1>
+        <div class="case-meta-chips">
+          <span class="status-chip" [ngClass]="'status-' + c.status">{{ c.status | enumLabel }}</span>
+          <span class="type-tag">{{ c.caseType | enumLabel }}</span>
+        </div>
       </div>
-    </section>
+    </div>
 
-    <section class="panel">
-      <h2>Investigations</h2>
-      <table>
-        <thead>
-          <tr><th>Status</th><th>Findings</th><th>Recommendation</th><th>Created</th><th></th></tr>
-        </thead>
-        <tbody>
-          @for (item of investigations(); track item.id) {
-            <tr>
-              <td>{{ item.status }}</td>
-              <td>{{ item.findings ?? '—' }}</td>
-              <td>{{ item.recommendation ?? '—' }}</td>
-              <td>{{ item.createdAtUtc | date:'short' }}</td>
-              <td>
-                @if (item.status === 'PendingApproval') {
-                  <button type="button" (click)="approveInvestigation(item.id, true)">Approve</button>
-                  <button type="button" (click)="approveInvestigation(item.id, false)">Reject</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      <div class="inline-form">
-        <input placeholder="Findings" [(ngModel)]="newInvestigation.findings" name="findings" />
-        <input placeholder="Recommendation" [(ngModel)]="newInvestigation.recommendation" name="recommendation" />
-        <button type="button" (click)="createInvestigation()">Capture Investigation</button>
-      </div>
-    </section>
+    <mat-card class="section-card summary-card">
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Amount Involved</span>
+            <span class="summary-value">{{ c.amountInvolved | currency:'ZAR' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Recoverable</span>
+            <span class="summary-value">{{ c.recoverableAmount | currency:'ZAR' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Recovered</span>
+            <span class="summary-value recovered">{{ c.recoveredAmount | currency:'ZAR' }}</span>
+          </div>
+        </div>
+        @if (c.description) {
+          <p class="case-description">{{ c.description }}</p>
+        }
+      </mat-card-content>
+    </mat-card>
 
-    <section class="panel">
-      <h2>Recoveries</h2>
-      <table>
-        <thead>
-          <tr><th>Amount</th><th>Status</th><th>Reference</th><th>Created</th><th></th></tr>
-        </thead>
-        <tbody>
-          @for (item of recoveries(); track item.id) {
-            <tr>
-              <td>{{ item.amount | currency:'ZAR' }}</td>
-              <td>{{ item.status }}</td>
-              <td>{{ item.reference ?? '—' }}</td>
-              <td>{{ item.createdAtUtc | date:'short' }}</td>
-              <td>
-                @if (item.status === 'Recovered') {
-                  <button type="button" (click)="approveWriteOff(item.id)">Write Off</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      <div class="inline-form">
-        <input type="number" placeholder="Amount" [(ngModel)]="newRecovery.amount" name="recoveryAmount" min="0.01" />
-        <input placeholder="Reference" [(ngModel)]="newRecovery.reference" name="recoveryReference" />
-        <button type="button" (click)="captureRecovery()">Capture Recovery</button>
-      </div>
-    </section>
+    <mat-card class="section-card">
+      <mat-card-content>
+        <h2><mat-icon>sync_alt</mat-icon> Change Case Status</h2>
+        <div class="inline-form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>New Status</mat-label>
+            <mat-select [(ngModel)]="newStatus" name="newStatus">
+              @for (status of statuses; track status) {
+                <mat-option [value]="status">{{ status | enumLabel }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="reason-field">
+            <mat-label>Reason</mat-label>
+            <input matInput [(ngModel)]="statusReason" name="statusReason" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" [disabled]="!newStatus" (click)="changeStatus()">
+            Change Status
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
 
-    <section class="panel">
-      <h2>Corrective Actions</h2>
-      <table>
-        <thead>
-          <tr><th>Control</th><th>Description</th><th>Status</th><th>Verified By</th><th></th></tr>
-        </thead>
-        <tbody>
-          @for (item of correctiveActions(); track item.id) {
-            <tr>
-              <td>{{ controlName(item.controlId) }}</td>
-              <td>{{ item.description }}</td>
-              <td>{{ item.status }}</td>
-              <td>{{ item.verifiedBy ?? '—' }}</td>
-              <td>
-                @if (item.status === 'Pending') {
-                  <button type="button" (click)="verifyCorrectiveAction(item.id)">Verify</button>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      <div class="inline-form">
-        <select [(ngModel)]="newCorrectiveAction.controlId" name="controlId">
-          <option value="" disabled>Select control&hellip;</option>
-          @for (control of controls(); track control.id) {
-            <option [value]="control.id">{{ control.name }} ({{ control.code }})</option>
-          }
-        </select>
-        <input placeholder="Description" [(ngModel)]="newCorrectiveAction.description" name="correctiveDescription" />
-        <button type="button" (click)="createCorrectiveAction()">Create Corrective Action</button>
-      </div>
-    </section>
+    <mat-accordion multi="true" class="case-sections">
+      <mat-expansion-panel [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title><mat-icon>manage_search</mat-icon> Investigations</mat-panel-title>
+          <mat-panel-description>{{ investigations().length }} record(s)</mat-panel-description>
+        </mat-expansion-panel-header>
 
-    <section class="panel">
-      <h2>Evidence Documents</h2>
-      <table>
-        <thead>
-          <tr><th>File Name</th><th>Type</th><th>Classification</th><th>Version</th><th>Uploaded By</th></tr>
-        </thead>
-        <tbody>
-          @for (doc of documents(); track doc.id) {
-            <tr>
-              <td>{{ doc.fileName }}</td>
-              <td>{{ doc.documentType }}</td>
-              <td>{{ doc.confidentialityClassification }}</td>
-              <td>{{ doc.version }}</td>
-              <td>{{ doc.uploadedBy }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      <div class="inline-form">
-        <input type="file" (change)="onFileSelected($event)" />
-        <input placeholder="Document Type" [(ngModel)]="uploadDocumentType" name="uploadDocumentType" />
-        <input placeholder="Classification" [(ngModel)]="uploadConfidentiality" name="uploadConfidentiality" />
-        <button type="button" [disabled]="!selectedFile" (click)="uploadDocument()">Upload</button>
-      </div>
-    </section>
+        @if (investigations().length === 0) {
+          <p class="empty-inline">No investigations captured yet.</p>
+        } @else {
+          <table class="data-table plain-table">
+            <thead>
+              <tr><th>Status</th><th>Findings</th><th>Recommendation</th><th>Created</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (item of investigations(); track item.id) {
+                <tr>
+                  <td><span class="status-chip" [ngClass]="'status-' + item.status">{{ item.status | enumLabel }}</span></td>
+                  <td>{{ item.findings ?? '—' }}</td>
+                  <td>{{ item.recommendation ?? '—' }}</td>
+                  <td>{{ item.createdAtUtc | date:'short' }}</td>
+                  <td class="row-actions">
+                    @if (item.status === 'PendingApproval') {
+                      <button mat-button color="primary" (click)="approveInvestigation(item.id, true)">Approve</button>
+                      <button mat-button color="warn" (click)="approveInvestigation(item.id, false)">Reject</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        <div class="inline-form-grid capture-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Findings</mat-label>
+            <input matInput [(ngModel)]="newInvestigation.findings" name="findings" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Recommendation</mat-label>
+            <input matInput [(ngModel)]="newInvestigation.recommendation" name="recommendation" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" (click)="createInvestigation()">
+            <mat-icon>add</mat-icon> Capture Investigation
+          </button>
+        </div>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title><mat-icon>account_balance_wallet</mat-icon> Recoveries</mat-panel-title>
+          <mat-panel-description>{{ recoveries().length }} record(s)</mat-panel-description>
+        </mat-expansion-panel-header>
+
+        @if (recoveries().length === 0) {
+          <p class="empty-inline">No recoveries captured yet.</p>
+        } @else {
+          <table class="data-table plain-table">
+            <thead>
+              <tr><th>Amount</th><th>Status</th><th>Reference</th><th>Created</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (item of recoveries(); track item.id) {
+                <tr>
+                  <td>{{ item.amount | currency:'ZAR' }}</td>
+                  <td><span class="status-chip" [ngClass]="'status-' + item.status">{{ item.status | enumLabel }}</span></td>
+                  <td>{{ item.reference ?? '—' }}</td>
+                  <td>{{ item.createdAtUtc | date:'short' }}</td>
+                  <td class="row-actions">
+                    @if (item.status === 'Recovered') {
+                      <button mat-button color="primary" (click)="approveWriteOff(item.id)">Write Off</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        <div class="inline-form-grid capture-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Amount</mat-label>
+            <span matPrefix>R&nbsp;</span>
+            <input matInput type="number" [(ngModel)]="newRecovery.amount" name="recoveryAmount" min="0.01" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Reference</mat-label>
+            <input matInput [(ngModel)]="newRecovery.reference" name="recoveryReference" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" (click)="captureRecovery()">
+            <mat-icon>add</mat-icon> Capture Recovery
+          </button>
+        </div>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title><mat-icon>fact_check</mat-icon> Corrective Actions</mat-panel-title>
+          <mat-panel-description>{{ correctiveActions().length }} record(s)</mat-panel-description>
+        </mat-expansion-panel-header>
+
+        @if (correctiveActions().length === 0) {
+          <p class="empty-inline">No corrective actions captured yet.</p>
+        } @else {
+          <table class="data-table plain-table">
+            <thead>
+              <tr><th>Control</th><th>Description</th><th>Status</th><th>Verified By</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (item of correctiveActions(); track item.id) {
+                <tr>
+                  <td>{{ controlName(item.controlId) }}</td>
+                  <td>{{ item.description }}</td>
+                  <td><span class="status-chip" [ngClass]="'status-' + item.status">{{ item.status | enumLabel }}</span></td>
+                  <td>{{ item.verifiedBy ?? '—' }}</td>
+                  <td class="row-actions">
+                    @if (item.status === 'Pending') {
+                      <button mat-button color="primary" (click)="verifyCorrectiveAction(item.id)">Verify</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        <div class="inline-form-grid capture-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Control</mat-label>
+            <mat-select [(ngModel)]="newCorrectiveAction.controlId" name="controlId">
+              @for (control of controls(); track control.id) {
+                <mat-option [value]="control.id">{{ control.name }} ({{ control.code }})</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <input matInput [(ngModel)]="newCorrectiveAction.description" name="correctiveDescription" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" (click)="createCorrectiveAction()">
+            <mat-icon>add</mat-icon> Create Corrective Action
+          </button>
+        </div>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title><mat-icon>folder_shared</mat-icon> Evidence Documents</mat-panel-title>
+          <mat-panel-description>{{ documents().length }} file(s)</mat-panel-description>
+        </mat-expansion-panel-header>
+
+        @if (documents().length === 0) {
+          <p class="empty-inline">No documents uploaded yet.</p>
+        } @else {
+          <table class="data-table plain-table">
+            <thead>
+              <tr><th>File Name</th><th>Type</th><th>Classification</th><th>Version</th><th>Uploaded By</th></tr>
+            </thead>
+            <tbody>
+              @for (doc of documents(); track doc.id) {
+                <tr>
+                  <td><mat-icon class="file-icon">description</mat-icon>{{ doc.fileName }}</td>
+                  <td>{{ doc.documentType }}</td>
+                  <td>{{ doc.confidentialityClassification }}</td>
+                  <td>v{{ doc.version }}</td>
+                  <td>{{ doc.uploadedBy }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        <div class="inline-form-grid capture-row">
+          <input type="file" (change)="onFileSelected($event)" class="file-input" />
+          <mat-form-field appearance="outline">
+            <mat-label>Document Type</mat-label>
+            <input matInput [(ngModel)]="uploadDocumentType" name="uploadDocumentType" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Classification</mat-label>
+            <input matInput [(ngModel)]="uploadConfidentiality" name="uploadConfidentiality" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" [disabled]="!selectedFile" (click)="uploadDocument()">
+            <mat-icon>upload</mat-icon> Upload
+          </button>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
   } @else {
-    <p>Loading case...</p>
+    <div class="loading-row">
+      <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+      <span>Loading case&hellip;</span>
+    </div>
   }
 </div>

@@ -1,3 +1,18 @@
+> **Update — 19 September 2026 (later same day):** A follow-up technical review found that
+> this report's "PRODUCTION READY" conclusion was premature. It validated a set of
+> happy-path Playwright E2E flows (login, case creation, page loads) but did not check the
+> build against the full IFWEMS Technical System Design specification. That review found
+> several specified modules entirely unimplemented (Delegation Management, the Determination
+> module, Consequence Management, Contract Variation tracking) and some backend data that was
+> being captured but never surfaced anywhere (the audit trail, the transaction screening
+> register) — plus a defect where routine compliance checks were never persisted, silently
+> disabling the duplicate-invoice and procurement-splitting detection rules for all non-override
+> traffic. See `Docs/IFWEMS_Gap_Analysis_and_UI_Modernisation_2026-09-19.md` for the full,
+> corrected assessment, what was fixed in that pass, and what remains before this system should
+> be considered for production deployment.
+>
+> ---
+
 # IFWEMS Requirements Validation Report
 **Date:** September 19, 2026  
 **System:** Irregular, Fruitless & Wasteful Expenditure Management and Prevention System  

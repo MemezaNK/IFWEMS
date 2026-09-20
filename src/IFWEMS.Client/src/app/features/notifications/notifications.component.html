@@ -1,24 +1,53 @@
-<div class="notifications">
-  <h1>Notifications</h1>
+<div class="page-container notifications">
+  <div class="page-header">
+    <div class="page-heading">
+      <h1>Notifications</h1>
+      <p class="page-subtitle">
+        @if (unreadCount > 0) {
+          {{ unreadCount }} unread notification{{ unreadCount === 1 ? '' : 's' }}
+        } @else {
+          You're all caught up.
+        }
+      </p>
+    </div>
+    @if (unreadCount > 0) {
+      <div class="page-actions">
+        <button mat-stroked-button color="primary" (click)="markAllRead()">
+          <mat-icon>done_all</mat-icon> Mark all as read
+        </button>
+      </div>
+    }
+  </div>
 
-  @if (isLoading()) {
-    <p>Loading notifications...</p>
-  } @else if (notifications().length === 0) {
-    <p>No notifications.</p>
-  } @else {
-    <ul class="notification-list">
-      @for (notification of notifications(); track notification.id) {
-        <li [class.unread]="!notification.isRead">
-          <div class="subject">{{ notification.subject }}</div>
-          <div class="body">{{ notification.body }}</div>
-          <div class="meta">
-            <span>{{ notification.sentAtUtc ? (notification.sentAtUtc | date:'medium') : 'Pending' }}</span>
-            @if (!notification.isRead) {
-              <button type="button" (click)="markRead(notification.id)">Mark as Read</button>
-            }
-          </div>
-        </li>
+  <mat-card class="section-card">
+    <mat-card-content>
+      @if (isLoading()) {
+        <div class="loading-row">
+          <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+          <span>Loading notifications&hellip;</span>
+        </div>
+      } @else if (notifications().length === 0) {
+        <div class="empty-state">
+          <mat-icon>notifications_none</mat-icon>
+          <p>No notifications yet.</p>
+        </div>
+      } @else {
+        <ul class="notification-list">
+          @for (notification of notifications(); track notification.id) {
+            <li [class.unread]="!notification.isRead">
+              <mat-icon class="notification-icon">{{ notification.isRead ? 'drafts' : 'mail' }}</mat-icon>
+              <div class="notification-body">
+                <div class="notification-subject">{{ notification.subject }}</div>
+                <div class="notification-text">{{ notification.body }}</div>
+                <div class="notification-meta">{{ notification.sentAtUtc ? (notification.sentAtUtc | date:'medium') : 'Pending' }}</div>
+              </div>
+              @if (!notification.isRead) {
+                <button mat-button color="primary" (click)="markRead(notification.id)">Mark as Read</button>
+              }
+            </li>
+          }
+        </ul>
       }
-    </ul>
-  }
+    </mat-card-content>
+  </mat-card>
 </div>
