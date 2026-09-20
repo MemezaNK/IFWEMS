@@ -19,7 +19,11 @@ Run as Administrator (PowerShell):
 # IIS + required role features
 Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Net-Ext45, Web-App-Dev -IncludeManagementTools
 
-# .NET 8 Hosting Bundle (installs ASP.NET Core Module v2 for IIS + the runtime)
+# .NET 8 SDK (required for `dotnet publish`/`dotnet build`/`dotnet ef` — the Hosting Bundle
+# below only installs the runtime, which is NOT enough to build/publish the app)
+winget install Microsoft.DotNet.SDK.8
+
+# .NET 8 Hosting Bundle (installs ASP.NET Core Module v2 for IIS + the runtime IIS uses to host the published app)
 Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/8.0" -OutFile "$env:TEMP\dotnet-hosting-8-win.exe"
 # (Use the actual "Hosting Bundle" download link for the current 8.0.x release from
 # https://dotnet.microsoft.com/download/dotnet/8.0 — direct links change per patch version.)
@@ -90,6 +94,15 @@ Expand-Archive actions-runner.zip -DestinationPath .
 
 The runner only makes outbound connections to GitHub — no inbound port needs to be opened for
 CI/CD itself.
+
+**Important:** install the .NET SDK and Node.js *before* installing the runner service (step 4),
+or restart the runner service afterwards (`Restart-Service actions.runner.*` or
+`./svc.cmd stop` then `./svc.cmd start` from the runner folder). Windows services only see the
+`PATH` that existed when they started, so if `dotnet`/`node`/`npm` were installed after the
+runner service, its jobs will fail with `dotnet : The term 'dotnet' is not recognized...` even
+though `dotnet --version` works fine in an interactive PowerShell window. If it still can't find
+`dotnet` after a service restart, reboot the VPS once to guarantee the machine-wide `PATH`
+propagates to services, then restart the runner service again.
 
 Also install the EF Core CLI tool globally so the workflow's migration step works:
 
