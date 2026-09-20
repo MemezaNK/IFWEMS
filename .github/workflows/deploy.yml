@@ -61,8 +61,20 @@ jobs:
         shell: powershell
         run: |
           Import-Module WebAdministration
-          Stop-WebSite -Name "${{ vars.IIS_SITE_NAME }}" -ErrorAction SilentlyContinue
-          Stop-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}" -ErrorAction SilentlyContinue
+          # Stop-WebSite/Stop-WebAppPool throw a terminating InvalidOperationException
+          # when the item is already stopped, which -ErrorAction SilentlyContinue does
+          # NOT suppress (these IIS provider cmdlets call ThrowTerminatingError). Use
+          # try/catch instead so an already-stopped site/pool never fails the job.
+          try {
+              Stop-WebSite -Name "${{ vars.IIS_SITE_NAME }}" -ErrorAction Stop
+          } catch {
+              Write-Host "Stop-WebSite: $($_.Exception.Message)"
+          }
+          try {
+              Stop-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}" -ErrorAction Stop
+          } catch {
+              Write-Host "Stop-WebAppPool: $($_.Exception.Message)"
+          }
 
       - name: Deploy published output
         shell: powershell
