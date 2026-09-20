@@ -21,12 +21,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Publish API (also builds the Angular client into wwwroot)
-        shell: pwsh
+        shell: powershell
         run: |
           dotnet publish src/IFWEMS.Api/IFWEMS.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish"
 
       - name: Apply EF Core migrations
-        shell: pwsh
+        shell: powershell
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.PROD_CONNECTION_STRING }}
         run: |
@@ -37,28 +37,28 @@ jobs:
             --connection "$env:ConnectionStrings__DefaultConnection"
 
       - name: Stop IIS site
-        shell: pwsh
+        shell: powershell
         run: |
           Import-Module WebAdministration
           Stop-WebSite -Name "${{ vars.IIS_SITE_NAME }}" -ErrorAction SilentlyContinue
           Stop-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}" -ErrorAction SilentlyContinue
 
       - name: Deploy published output
-        shell: pwsh
+        shell: powershell
         run: |
           $dest = "${{ vars.IIS_SITE_PATH }}"
           robocopy "$env:RUNNER_TEMP/publish" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
           if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
 
       - name: Start IIS site
-        shell: pwsh
+        shell: powershell
         run: |
           Import-Module WebAdministration
           Start-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}"
           Start-WebSite -Name "${{ vars.IIS_SITE_NAME }}"
 
       - name: Smoke test
-        shell: pwsh
+        shell: powershell
         run: |
           Start-Sleep -Seconds 5
           $resp = Invoke-WebRequest -Uri "${{ vars.SITE_HEALTH_URL }}" -UseBasicParsing
