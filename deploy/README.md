@@ -134,14 +134,26 @@ Repo → **Settings → Secrets and variables → Actions**:
 | Variable | `IIS_SITE_PATH` | `C:\inetpub\ifwems` |
 | Variable | `SITE_HEALTH_URL` | `http://<vps-ip>/health/ready` |
 
-Also set the JWT signing key as a **machine-level environment variable** on the VPS (ASP.NET
-Core config automatically maps `Jwt__Key` → `Jwt:Key`), so it never lives in source control:
+Also set these as **machine-level environment variables** on the VPS itself (ASP.NET Core
+config automatically maps `A__B` → `A:B`), so the real secrets never live in source control
+**and** so the running app (not just the CI job) actually uses them:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("Jwt__Key", "<a long random secret, e.g. from `openssl rand -base64 48`>", "Machine")
-# Restart the app pool afterwards so IIS picks up the new machine env var:
-Restart-WebAppPool -Name "IFWEMS"
+[Environment]::SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "Server=localhost;Database=IfwemsDb;User Id=ifwems_app;Password=<the real password>;TrustServerCertificate=True;MultipleActiveResultSets=true", "Machine")
+
+# A plain app-pool recycle is NOT reliable here: WAS/W3SVC cache the machine environment
+# from when THEY started, not from when the registry value changed, so a recycled worker
+# process can still inherit the OLD (or no) value. Use iisreset to restart those services
+# and force them to pick up the new environment variables:
+iisreset
 ```
+
+Note the distinction: `PROD_CONNECTION_STRING` above is a **GitHub Actions secret**, used only
+inside the CI job to run `dotnet ef database update`. It is separate from the **VPS machine
+environment variable** `ConnectionStrings__DefaultConnection` set here, which is what the
+*running* IIS-hosted app actually reads at startup -- both need the same real value, but they
+live in two different places and neither one automatically populates the other.
 
 Consider also creating a `production` GitHub **Environment** (Settings → Environments) with a
 required reviewer, so deploys need manual approval before running on the VPS.
@@ -220,3 +232,27 @@ Fix, on the VPS itself:
 The workflow now has a "Verify ASP.NET Core Hosting Bundle is installed" step that checks for
 this up front and fails fast with the same guidance, instead of only surfacing the problem at
 the smoke-test step after the DB migration and file copy have already run.
+
+## Troubleshooting: `/health/ready` returns "Unhealthy" (or login returns 500)
+
+The `sqlserver` health check (and anything else that hits the database, like
+`/api/auth/login`) uses `ConnectionStrings:DefaultConnection` from the running app's own
+configuration -- **not** the `PROD_CONNECTION_STRING` GitHub secret. That secret only ever
+reaches the one-off `dotnet ef database update` step inside the CI job; it is never passed to
+the actual IIS-hosted app process. If `ConnectionStrings__DefaultConnection` was never set as
+a **machine-level environment variable on the VPS** (see step 5 above), the running app falls
+back to the placeholder committed in `appsettings.Production.json`
+(`Password=REPLACE_ME`), so every database call -- including the ready check and login --
+fails.
+
+Fix, on the VPS itself:
+
+1. Set the machine env var (see step 5's `[Environment]::SetEnvironmentVariable(...)` command
+   for `ConnectionStrings__DefaultConnection`), if it isn't already set.
+2. Run `iisreset` -- not just `Restart-WebAppPool` -- since WAS/W3SVC only re-read the machine
+   environment when those services themselves restart, not on an app-pool recycle alone.
+3. Re-check `http://<vps-ip>/health/ready`; it should now report healthy.
+
+If it's still unhealthy after that, confirm the value itself is correct (matches the same
+connection string that was tested successfully with `sqlcmd`/`Test-NetConnection`, including
+`TrustServerCertificate=True`), and that the `ifwems_app` SQL login has access to `IfwemsDb`.
