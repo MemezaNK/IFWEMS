@@ -20,8 +20,16 @@ Run as Administrator (PowerShell):
 Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Net-Ext45, Web-App-Dev -IncludeManagementTools
 
 # .NET 8 SDK (required for `dotnet publish`/`dotnet build`/`dotnet ef` — the Hosting Bundle
-# below only installs the runtime, which is NOT enough to build/publish the app)
+# below only installs the runtime, which is NOT enough to build/publish the app).
+# IMPORTANT: verify this actually installs an 8.x SDK — `winget install Microsoft.DotNet.SDK.8`
+# has been observed installing a newer major version (e.g. 10.x) on some machines instead.
+# Run `dotnet --list-sdks` afterwards and confirm an 8.0.x entry is present. A newer SDK's
+# build engine is NOT compatible with the older Microsoft.EntityFrameworkCore.Design package
+# this repo uses — it causes `dotnet ef` to fail with "Missing required option '--assembly'".
+# The repo's global.json pins to 8.x so builds fail fast with a clear "no SDK found" error
+# instead, if only a newer major SDK is present.
 winget install Microsoft.DotNet.SDK.8
+dotnet --list-sdks   # confirm an 8.0.x line appears
 
 # .NET 8 Hosting Bundle (installs ASP.NET Core Module v2 for IIS + the runtime IIS uses to host the published app)
 Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/8.0" -OutFile "$env:TEMP\dotnet-hosting-8-win.exe"
@@ -160,3 +168,26 @@ Once a domain points at the VPS, install [win-acme](https://www.win-acme.com/) t
 auto-renew a Let's Encrypt certificate bound to the IIS site, then set
 `UseHttpsRedirection: true` in `appsettings.Production.json` and add an HTTPS binding to the
 site.
+
+## Troubleshooting: `dotnet ef` fails with "Missing required option '--assembly'"
+
+This has shown up twice while standing up this pipeline, from two different causes -- check
+both if it happens again:
+
+1. **`ConnectionStrings__DefaultConnection` is empty.** The "Apply EF Core migrations" step
+   now fails fast with a clear message if this happens, instead of letting `dotnet-ef` fail
+   confusingly on `--assembly`. If you see the fail-fast message, the `PROD_CONNECTION_STRING`
+   secret isn't set (or isn't set where the job can see it -- repo-level secrets, or the
+   `production` environment's own secrets under **Settings > Environments > production**).
+2. **A newer major .NET SDK is present on the VPS alongside 8.x** (see the note in step 1
+   above). `dotnet --list-sdks` now runs as part of the migrations step so its output is in
+   the log; confirm an `8.0.x` entry is there. If a 9.x/10.x SDK is also installed, the
+   `global.json` pin should make plain `dotnet build`/`publish` fail loudly instead of picking
+   it up -- but `dotnet-ef`'s own internal design-time build step has been the one to hit this
+   inconsistently. Uninstalling the extra SDK (or moving it off `PATH` for the runner service
+   account) is the reliable fix.
+
+The migrations step also now passes `--configuration Release` (matching the `dotnet publish`
+step that runs just before it) and `--verbose`, since running `dotnet-ef` with an implicit
+`Debug` configuration against a checkout whose `obj/` cache was last evaluated for `Release`
+is the most concrete reproduction of this error found so far.

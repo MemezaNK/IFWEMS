@@ -30,13 +30,32 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.PROD_CONNECTION_STRING }}
         run: |
+          # Fail fast with a clear message instead of the cryptic "Missing required option
+          # '--assembly'" that dotnet-ef produces further down when this is empty -- e.g. if
+          # PROD_CONNECTION_STRING isn't set on the repo or the 'production' environment yet.
+          if ([string]::IsNullOrWhiteSpace($env:ConnectionStrings__DefaultConnection)) {
+            throw "ConnectionStrings__DefaultConnection is empty. Set the PROD_CONNECTION_STRING secret: repo Settings > Secrets and variables > Actions (or the 'production' environment's own secrets)."
+          }
+
+          # Diagnostics kept in the log so a future failure here doesn't need reproducing blind --
+          # see deploy/README.md's note that a stray newer major SDK on the VPS causes dotnet-ef
+          # to fail with "Missing required option '--assembly'" too.
+          dotnet --list-sdks
+
           # dotnet-ef comes from the repo-local tool manifest (.config/dotnet-tools.json), not a
           # global install, so it works regardless of which account runs the runner service.
           dotnet tool restore
+
+          # --configuration Release matches the Release build the previous step just produced.
+          # Leaving this unset makes dotnet-ef default to Debug and re-evaluate the project from
+          # scratch against a checkout whose obj/ cache was last written for Release -- that
+          # mismatch is what has been producing "Missing required option '--assembly'" here.
           dotnet ef database update `
             --project src/IFWEMS.Infrastructure `
             --startup-project src/IFWEMS.Api `
-            --connection "$env:ConnectionStrings__DefaultConnection"
+            --configuration Release `
+            --connection "$env:ConnectionStrings__DefaultConnection" `
+            --verbose
 
       - name: Stop IIS site
         shell: powershell
