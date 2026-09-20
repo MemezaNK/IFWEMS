@@ -81,7 +81,16 @@ jobs:
         run: |
           $dest = "${{ vars.IIS_SITE_PATH }}"
           robocopy "$env:RUNNER_TEMP/publish" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
-          if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+          $robocopyExit = $LASTEXITCODE
+          if ($robocopyExit -ge 8) { throw "robocopy failed with exit code $robocopyExit" }
+          # Robocopy exit codes 0-7 are success (a bitmask of "files copied"/"extra
+          # files"/"mismatch", not failure). PowerShell propagates the last
+          # $LASTEXITCODE as the process exit code, which would otherwise make
+          # GitHub Actions treat a successful robocopy (e.g. exit code 1) as a
+          # step failure. Reset it now that we've confirmed it's a success code.
+          Write-Host "robocopy exit code $robocopyExit (0-7 = success)"
+          $LASTEXITCODE = 0
+          exit 0
 
       - name: Start IIS site
         shell: powershell
