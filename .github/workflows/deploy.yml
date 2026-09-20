@@ -20,6 +20,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify ASP.NET Core Hosting Bundle is installed
+        shell: powershell
+        run: |
+          # HTTP 500.19 (Config Error 0x8007000d) on the published site means IIS could not
+          # parse the auto-generated web.config's <aspNetCore>/AspNetCoreModuleV2 handler --
+          # almost always because the .NET Hosting Bundle (which registers ASP.NET Core
+          # Module v2 with IIS) isn't installed on this VPS, or IIS wasn't restarted after it
+          # was. Fail fast here with an actionable message instead of only surfacing this as
+          # a smoke-test failure after the DB migration and file copy already ran.
+          $ancmPaths = @(
+              "$env:ProgramFiles\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll",
+              "${env:ProgramFiles(x86)}\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
+          )
+          $found = $ancmPaths | Where-Object { Test-Path $_ }
+          if (-not $found) {
+              throw "ASP.NET Core Module v2 not found on this server (checked: $($ancmPaths -join ', ')). Install the .NET 8 Hosting Bundle (see deploy/README.md), then run 'net stop was /y' followed by 'net start w3svc' to register it with IIS, and re-run this workflow."
+          }
+          Write-Host "ASP.NET Core Module v2 found at: $found"
+
       - name: Publish API (also builds the Angular client into wwwroot)
         shell: powershell
         run: |
