@@ -107,12 +107,12 @@ service** for it to see the new `PATH`. If it still can't find the command after
 restart, reboot the VPS once to guarantee the machine-wide `PATH` propagates to services, then
 start the runner service again.
 
-
-Also install the EF Core CLI tool globally so the workflow's migration step works:
-
-```powershell
-dotnet tool install --global dotnet-ef --version 8.0.*
-```
+The workflow restores `dotnet-ef` automatically from the repo's local tool manifest
+([.config/dotnet-tools.json](../.config/dotnet-tools.json)) via `dotnet tool restore` — no
+global install needed. (A `dotnet tool install --global` would only be visible to whichever
+Windows account owns that install; since the runner service typically runs as a system/service
+account rather than your interactive user, a global install is unreliable here — the local
+manifest avoids that problem entirely.)
 
 ## 5. Configure secrets and variables in GitHub
 

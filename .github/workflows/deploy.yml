@@ -30,7 +30,9 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.PROD_CONNECTION_STRING }}
         run: |
-          # dotnet-ef must be installed as a global tool on the VPS runner (dotnet tool install --global dotnet-ef).
+          # dotnet-ef comes from the repo-local tool manifest (.config/dotnet-tools.json), not a
+          # global install, so it works regardless of which account runs the runner service.
+          dotnet tool restore
           dotnet ef database update `
             --project src/IFWEMS.Infrastructure `
             --startup-project src/IFWEMS.Api `
