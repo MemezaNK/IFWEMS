@@ -107,6 +107,7 @@ service** for it to see the new `PATH`. If it still can't find the command after
 restart, reboot the VPS once to guarantee the machine-wide `PATH` propagates to services, then
 start the runner service again.
 
+
 Also install the EF Core CLI tool globally so the workflow's migration step works:
 
 ```powershell
