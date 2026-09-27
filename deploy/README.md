@@ -1,15 +1,40 @@
-# Deploying IFWEMS to a Windows VPS (IIS + self-hosted GitHub Actions runner)
+# Deploying IFWEMS + TETA to a Windows VPS (IIS + self-hosted GitHub Actions runner)
 
 This is a one-time setup runbook. After completing it, every push to `main` automatically
-publishes the API, builds the Angular client into it, and redeploys to IIS via
-`.github/workflows/deploy.yml`.
+publishes **both** applications in this repo, builds each one's own Angular client into it, and
+redeploys both to IIS via `.github/workflows/deploy.yml`.
 
-Architecture: the Angular production build is copied into the API's `wwwroot` at publish time
-(see the `BuildAngularApp` target in [src/IFWEMS.Api/IFWEMS.Api.csproj](../src/IFWEMS.Api/IFWEMS.Api.csproj)),
-and `Program.cs` serves it as static files with a SPA fallback to `index.html`. So there is
-**one IIS site, one process, one origin** — no CORS or reverse-proxy config needed. The
-Angular app already calls a relative `/api` base URL (`environment.production.ts`), which
-`api/[controller]` routes on the same origin satisfy directly.
+## Architecture
+
+This repo contains two independent web applications that share one server, one database and a
+few platform-level concerns (security/authentication, audit trail, notifications), but otherwise
+run as separate processes with separate URLs:
+
+| Application | Project | URL | IIS Application | App pool |
+|---|---|---|---|---|
+| IFWEMS (existing) | `src/IFWEMS.Api` | `http://<vps-ip>/IFWEMS/` | `/IFWEMS` | `IFWEMS` |
+| TETA-IPPCMS (new) | `src/Teta.Ippcms.Api` | `http://<vps-ip>/TETA/` | `/TETA` | `TETA` |
+
+Both are set up as **IIS Applications** (virtual directories with their own app pool) under one
+parent IIS site, rather than as two separate sites on the same port — that's what makes both
+paths resolve on the same `http://<vps-ip>/` origin. Each application's own Angular production
+build is copied into that application's `wwwroot` at publish time (see the `BuildAngularApp`
+target in [src/IFWEMS.Api/IFWEMS.Api.csproj](../src/IFWEMS.Api/IFWEMS.Api.csproj) and
+[src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj](../src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj)), and
+each `Program.cs` serves it as static files with a SPA fallback to `index.html`. Each Angular
+client is built with its own base href (`/IFWEMS/` / `/TETA/`) and calls a relative `api` base URL
+(`environment.production.ts`), which resolves on the same origin/path — so there is **no CORS and
+no reverse-proxy config** for either app.
+
+Because each application has its **own dedicated app pool**, deploying or recycling one never
+stops or restarts the other's worker process — they run independently, exactly as required. Both
+connect to the **same SQL Server database**: IFWEMS owns the shared tables in the default `dbo`
+schema (including `dbo.Users`, the shared identity/login store), while every TETA-specific table
+lives in its own `teta` schema (created automatically by TETA's first EF Core migration). TETA
+reads/writes `dbo.Users` for shared login and user look-ups but does not migrate it — IFWEMS
+remains the owner of that table. The two apps do **not** share a session/token: each issues and
+validates its **own** JWT (different `Issuer`/`Audience`/signing key — see each app's
+`appsettings.Production.json`), so signing in to one does not sign you in to the other.
 
 ## 1. Install prerequisites on the VPS
 
@@ -20,7 +45,7 @@ Run as Administrator (PowerShell):
 Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Net-Ext45, Web-App-Dev -IncludeManagementTools
 
 # .NET 8 SDK (required for `dotnet publish`/`dotnet build`/`dotnet ef` — the Hosting Bundle
-# below only installs the runtime, which is NOT enough to build/publish the app).
+# below only installs the runtime, which is NOT enough to build/publish either app).
 # IMPORTANT: verify this actually installs an 8.x SDK — `winget install Microsoft.DotNet.SDK.8`
 # has been observed installing a newer major version (e.g. 10.x) on some machines instead.
 # Run `dotnet --list-sdks` afterwards and confirm an 8.0.x entry is present. A newer SDK's
@@ -31,13 +56,15 @@ Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Net-Ext45, Web-App-D
 winget install Microsoft.DotNet.SDK.8
 dotnet --list-sdks   # confirm an 8.0.x line appears
 
-# .NET 8 Hosting Bundle (installs ASP.NET Core Module v2 for IIS + the runtime IIS uses to host the published app)
+# .NET 8 Hosting Bundle (installs ASP.NET Core Module v2 for IIS + the runtime IIS uses to host
+# BOTH published apps)
 Invoke-WebRequest -Uri "https://dotnet.microsoft.com/download/dotnet/8.0" -OutFile "$env:TEMP\dotnet-hosting-8-win.exe"
 # (Use the actual "Hosting Bundle" download link for the current 8.0.x release from
 # https://dotnet.microsoft.com/download/dotnet/8.0 — direct links change per patch version.)
 Start-Process "$env:TEMP\dotnet-hosting-8-win.exe" -ArgumentList "/quiet /norestart" -Wait
 
-# Node.js LTS (needed because `dotnet publish` triggers `npm ci` / `ng build`)
+# Node.js LTS (needed because `dotnet publish` triggers `npm ci` / `ng build` for each app's
+# Angular client)
 winget install OpenJS.NodeJS.LTS
 
 # Restart IIS so it picks up the new module
@@ -46,12 +73,16 @@ net start w3svc
 ```
 
 Install SQL Server (Developer/Standard/Express edition) natively if not already present, and
-enable **Mixed Mode Authentication** (or use a dedicated Windows service account) so the app
-can connect with a SQL login.
+enable **Mixed Mode Authentication** (or use a dedicated Windows service account) so the apps can
+connect with a SQL login.
 
 ## 2. Create the database and app login
 
-In SQL Server Management Studio or `sqlcmd` on the VPS:
+Both applications use the **same** database and the **same** SQL login (granted `db_datareader`/
+`db_datawriter`/`db_ddladmin` at the database level, not scoped to one schema) — IFWEMS's
+migrations create and own the `dbo` tables, TETA's migrations create and own the `teta` schema and
+its tables, and the shared login can read/write both. In SQL Server Management Studio or `sqlcmd`
+on the VPS:
 
 ```sql
 CREATE LOGIN ifwems_app WITH PASSWORD = '<choose a strong password>';
@@ -61,30 +92,49 @@ USE IfwemsDb;
 CREATE USER ifwems_app FOR LOGIN ifwems_app;
 ALTER ROLE db_datareader ADD MEMBER ifwems_app;
 ALTER ROLE db_datawriter ADD MEMBER ifwems_app;
-ALTER ROLE db_ddladmin ADD MEMBER ifwems_app;  -- needed once for EF migrations; can be revoked after
+ALTER ROLE db_ddladmin ADD MEMBER ifwems_app;  -- needed once for EF migrations (both apps' migrations create their own tables/schema); can be revoked after
 GO
 ```
 
-Update `src/IFWEMS.Api/appsettings.Production.json`'s connection string (or, better, override it
-via an environment variable — see step 5) with this login's password. **Never commit the real
-password.**
+You do **not** need to create the `teta` schema by hand — TETA's first `dotnet ef database
+update` run (see step 6 / the deploy workflow) creates it automatically as part of its migration.
 
-## 3. Create the IIS site and application pool
+Update each app's `appsettings.Production.json` connection string (or, better, override it via a
+machine-level environment variable — see step 5) with this login's password. **Never commit the
+real password.** Both apps' connection strings should point at the same `IfwemsDb` database.
+
+## 3. Create the IIS site, the two applications and their app pools
 
 ```powershell
 Import-Module WebAdministration
 
-New-Item "IIS:\AppPools\IFWEMS" -Force
-Set-ItemProperty "IIS:\AppPools\IFWEMS" -Name "managedRuntimeVersion" -Value ""  # No Managed Code — required for ASP.NET Core Module
+# Two dedicated app pools, one per application, so they run as independent worker processes.
+foreach ($pool in @("IFWEMS", "TETA")) {
+    New-Item "IIS:\AppPools\$pool" -Force
+    Set-ItemProperty "IIS:\AppPools\$pool" -Name "managedRuntimeVersion" -Value ""  # No Managed Code — required for ASP.NET Core Module
+}
 
-New-Item "C:\inetpub\ifwems" -ItemType Directory -Force
-New-Website -Name "IFWEMS" -PhysicalPath "C:\inetpub\ifwems" -ApplicationPool "IFWEMS" -Port 80
+# One parent site (an empty placeholder folder — nothing is ever published directly into it),
+# with the two applications as sub-paths under it.
+New-Item "C:\inetpub\portal" -ItemType Directory -Force
+New-Item "C:\inetpub\portal\IFWEMS" -ItemType Directory -Force
+New-Item "C:\inetpub\portal\TETA" -ItemType Directory -Force
+New-Website -Name "Portal" -PhysicalPath "C:\inetpub\portal" -ApplicationPool "IFWEMS" -Port 80
+
+New-WebApplication -Site "Portal" -Name "IFWEMS" -PhysicalPath "C:\inetpub\portal\IFWEMS" -ApplicationPool "IFWEMS"
+New-WebApplication -Site "Portal" -Name "TETA" -PhysicalPath "C:\inetpub\portal\TETA" -ApplicationPool "TETA"
 
 # Open the firewall for HTTP
-New-NetFirewallRule -DisplayName "IFWEMS HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
+New-NetFirewallRule -DisplayName "Portal HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
 ```
 
-Leave `C:\inetpub\ifwems` empty for now — the first CI run (or `deploy/deploy.ps1`) populates it.
+Leave `C:\inetpub\portal\IFWEMS` and `C:\inetpub\portal\TETA` empty for now — the first CI run (or
+`deploy/deploy.ps1`) populates each one. The parent site's own physical path
+(`C:\inetpub\portal`) never receives any published files; it just anchors the two applications.
+
+If IFWEMS was previously deployed directly at the site root (an earlier version of this runbook
+did that, before TETA existed), move its files into the new `\IFWEMS` subfolder and delete the
+old root-level site/app-pool bindings so the two don't collide on port 80.
 
 ## 4. Install a self-hosted GitHub Actions runner on the VPS
 
@@ -129,31 +179,67 @@ Repo → **Settings → Secrets and variables → Actions**:
 | Type | Name | Value |
 |---|---|---|
 | Secret | `PROD_CONNECTION_STRING` | `Server=localhost;Database=IfwemsDb;User Id=ifwems_app;Password=<the real password>;TrustServerCertificate=True;MultipleActiveResultSets=true` |
-| Variable | `IIS_SITE_NAME` | `IFWEMS` |
-| Variable | `IIS_APP_POOL_NAME` | `IFWEMS` |
-| Variable | `IIS_SITE_PATH` | `C:\inetpub\ifwems` |
-| Variable | `SITE_HEALTH_URL` | `http://<vps-ip>/health/ready` |
+| Variable | `IFWEMS_APP_POOL_NAME` | `IFWEMS` |
+| Variable | `IFWEMS_SITE_PATH` | `C:\inetpub\portal\IFWEMS` |
+| Variable | `IFWEMS_HEALTH_URL` | `http://<vps-ip>/IFWEMS/health/ready` |
+| Variable | `TETA_APP_POOL_NAME` | `TETA` |
+| Variable | `TETA_SITE_PATH` | `C:\inetpub\portal\TETA` |
+| Variable | `TETA_HEALTH_URL` | `http://<vps-ip>/TETA/health/ready` |
+
+> If you set up this VPS before TETA existed, you previously had `IIS_SITE_NAME` / 
+> `IIS_APP_POOL_NAME` / `IIS_SITE_PATH` / `SITE_HEALTH_URL` variables from the old single-app
+> layout. Replace them with the `IFWEMS_*` / `TETA_*` pairs above — the workflow no longer reads
+> the old names (and no longer stops/starts the parent site at all, only each app's own pool).
 
 Also set these as **machine-level environment variables** on the VPS itself (ASP.NET Core
 config automatically maps `A__B` → `A:B`), so the real secrets never live in source control
-**and** so the running app (not just the CI job) actually uses them:
+**and** so the running apps (not just the CI job) actually use them. Both apps read the same
+connection string variable name; each has its **own** `Jwt__Key` (they must be different — that's
+what keeps a token issued by one app from being accepted by the other):
 
 ```powershell
-[Environment]::SetEnvironmentVariable("Jwt__Key", "<a long random secret, e.g. from `openssl rand -base64 48`>", "Machine")
 [Environment]::SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "Server=localhost;Database=IfwemsDb;User Id=ifwems_app;Password=<the real password>;TrustServerCertificate=True;MultipleActiveResultSets=true", "Machine")
+[Environment]::SetEnvironmentVariable("Jwt__Key", "<a long random secret for IFWEMS, e.g. from `openssl rand -base64 48`>", "Machine")
+```
 
-# A plain app-pool recycle is NOT reliable here: WAS/W3SVC cache the machine environment
-# from when THEY started, not from when the registry value changed, so a recycled worker
-# process can still inherit the OLD (or no) value. Use iisreset to restart those services
-# and force them to pick up the new environment variables:
+TETA's app pool needs its **own** `Jwt__Key` (and the same `ConnectionStrings__DefaultConnection`)
+set as **app-pool-specific** environment variables rather than machine-wide ones, since a
+machine-wide `Jwt__Key` would apply to both pools identically. Set them on the TETA app pool
+itself:
+
+```powershell
+Import-Module WebAdministration
+$teta = Get-Item "IIS:\AppPools\TETA"
+$teta.SetAttributeValue("environmentVariables", $null)  # ensure a clean collection
+$vars = @{
+    "ConnectionStrings__DefaultConnection" = "Server=localhost;Database=IfwemsDb;User Id=ifwems_app;Password=<the real password>;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    "Jwt__Key" = "<a different long random secret for TETA>"
+    "Security__AuditSealKey" = "<a long random secret for TETA's audit log tamper-seal>"
+    "Security__FieldEncryptionKey" = "<a long random secret for TETA's encrypted fields>"
+}
+foreach ($name in $vars.Keys) {
+    $teta.environmentVariables.Add(@{ name = $name; value = $vars[$name] }) | Out-Null
+}
+$teta | Set-Item
 iisreset
 ```
 
+(The IFWEMS pool can instead use the simpler machine-wide variables above, since there's only one
+app relying on that pool's environment — but setting `Jwt__Key` on the IFWEMS pool the same
+per-pool way works too, and keeps both apps configured consistently. Either approach is fine as
+long as the two `Jwt__Key` values are different.)
+
+A plain app-pool recycle is **not** reliable for picking up a *machine-level* variable — WAS/W3SVC
+cache the machine environment from when *they* started, not from when the registry value
+changed — so after changing a machine-level variable, run `iisreset` to force it. Per-app-pool
+environment variables (set via `$pool.environmentVariables`, as above) *do* take effect on the
+next app-pool recycle/start, without needing a full `iisreset`.
+
 Note the distinction: `PROD_CONNECTION_STRING` above is a **GitHub Actions secret**, used only
-inside the CI job to run `dotnet ef database update`. It is separate from the **VPS machine
-environment variable** `ConnectionStrings__DefaultConnection` set here, which is what the
-*running* IIS-hosted app actually reads at startup -- both need the same real value, but they
-live in two different places and neither one automatically populates the other.
+inside the CI job to run `dotnet ef database update` for both apps. It is separate from the
+**VPS environment variables** set here, which are what the *running* IIS-hosted apps actually
+read at startup — all of these need the same real connection string value, but they live in
+different places and none of them automatically populates another.
 
 Consider also creating a `production` GitHub **Environment** (Settings → Environments) with a
 required reviewer, so deploys need manual approval before running on the VPS.
@@ -161,25 +247,28 @@ required reviewer, so deploys need manual approval before running on the VPS.
 ## 6. First deployment
 
 Push to `main` (or run the workflow manually via **Actions → Deploy to VPS (IIS) → Run workflow**).
-The workflow will:
-1. `dotnet publish` the API (this transitively runs `npm ci` + `ng build --configuration production`
-   and copies the Angular output into `wwwroot`).
-2. Apply pending EF Core migrations against the production database.
-3. Stop the IIS site/app pool, mirror the publish output into `C:\inetpub\ifwems`, restart it.
-4. Hit `/health/ready` as a smoke test.
+The workflow will, for **each** app in turn:
+1. `dotnet publish` it (this transitively runs `npm ci` + `ng build --configuration production`
+   for that app's own Angular client and copies the output into its `wwwroot`).
+2. Apply that app's pending EF Core migrations against the shared production database.
+3. Stop only that app's own app pool, mirror its publish output into its own folder, restart
+   only that app's pool (the parent site and the other app's pool are never touched).
+4. Hit that app's own `/health/ready` as a smoke test.
 
-For a manual one-off deploy without CI, run on the VPS:
+For a manual one-off deploy of a single app without CI, run on the VPS:
 
 ```powershell
-./deploy/deploy.ps1 -SitePath 'C:\inetpub\ifwems' -SiteName 'IFWEMS' -AppPoolName 'IFWEMS'
+./deploy/deploy.ps1 -App IFWEMS -SitePath 'C:\inetpub\portal\IFWEMS' -AppPoolName 'IFWEMS'
+./deploy/deploy.ps1 -App TETA -SitePath 'C:\inetpub\portal\TETA' -AppPoolName 'TETA'
 ```
 
 ## 7. Later: adding a domain + HTTPS
 
 Once a domain points at the VPS, install [win-acme](https://www.win-acme.com/) to obtain and
-auto-renew a Let's Encrypt certificate bound to the IIS site, then set
-`UseHttpsRedirection: true` in `appsettings.Production.json` and add an HTTPS binding to the
-site.
+auto-renew a Let's Encrypt certificate bound to the **parent** IIS site (`Portal`) — a single
+binding on the parent site covers both `/IFWEMS` and `/TETA` sub-paths — then set
+`UseHttpsRedirection: true` in **both** apps' `appsettings.Production.json` and add an HTTPS
+binding to the `Portal` site.
 
 ## Troubleshooting: `dotnet ef` fails with "Missing required option '--assembly'"
 
@@ -199,18 +288,19 @@ both if it happens again:
    inconsistently. Uninstalling the extra SDK (or moving it off `PATH` for the runner service
    account) is the reliable fix.
 
-The migrations step also now passes `--configuration Release` (matching the `dotnet publish`
-step that runs just before it) and `--verbose`, since running `dotnet-ef` with an implicit
-`Debug` configuration against a checkout whose `obj/` cache was last evaluated for `Release`
-is the most concrete reproduction of this error found so far.
+The migrations step also passes `--configuration Release` (matching the `dotnet publish` step
+that runs just before it, for each app) and `--verbose`, since running `dotnet-ef` with an
+implicit `Debug` configuration against a checkout whose `obj/` cache was last evaluated for
+`Release` is the most concrete reproduction of this error found so far.
 
 ## Troubleshooting: smoke test fails with "HTTP Error 500.19 - Internal Server Error" (Config Error 0x8007000d)
 
-This means IIS could not read `web.config` because it doesn't recognize the
+This means IIS could not read that application's `web.config` because it doesn't recognize the
 `AspNetCoreModuleV2` handler referenced in it (the `web.config` itself is auto-generated by
-`dotnet publish` and is not checked into this repo). Almost always this means the **.NET
-Hosting Bundle** (see step 1 above) is not installed on this VPS, or IIS was never restarted
-after it was installed, so ASP.NET Core Module v2 was never registered with IIS.
+`dotnet publish` and is not checked into this repo, separately for each app). Almost always this
+means the **.NET Hosting Bundle** (see step 1 above) is not installed on this VPS, or IIS was
+never restarted after it was installed, so ASP.NET Core Module v2 was never registered with IIS —
+this would affect **both** applications identically, since they share the same IIS installation.
 
 Fix, on the VPS itself:
 
@@ -229,29 +319,28 @@ Fix, on the VPS itself:
    should return `True`.
 4. Re-run the deploy workflow (or push a new commit).
 
-The workflow now has a "Verify ASP.NET Core Hosting Bundle is installed" step that checks for
-this up front and fails fast with the same guidance, instead of only surfacing the problem at
-the smoke-test step after the DB migration and file copy have already run.
+The workflow has a "Verify ASP.NET Core Hosting Bundle is installed" step that checks for this up
+front and fails fast with the same guidance, instead of only surfacing the problem at the
+smoke-test step after the DB migrations and file copies have already run.
 
-## Troubleshooting: `/health/ready` returns "Unhealthy" (or login returns 500)
+## Troubleshooting: `/IFWEMS/health/ready` or `/TETA/health/ready` returns "Unhealthy" (or login returns 500)
 
-The `sqlserver` health check (and anything else that hits the database, like
-`/api/auth/login`) uses `ConnectionStrings:DefaultConnection` from the running app's own
-configuration -- **not** the `PROD_CONNECTION_STRING` GitHub secret. That secret only ever
-reaches the one-off `dotnet ef database update` step inside the CI job; it is never passed to
-the actual IIS-hosted app process. If `ConnectionStrings__DefaultConnection` was never set as
-a **machine-level environment variable on the VPS** (see step 5 above), the running app falls
-back to the placeholder committed in `appsettings.Production.json`
-(`Password=REPLACE_ME`), so every database call -- including the ready check and login --
-fails.
+The `sqlserver` health check (and anything else that hits the database, like a login attempt)
+uses `ConnectionStrings:DefaultConnection` from that app's own running configuration -- **not**
+the `PROD_CONNECTION_STRING` GitHub secret. That secret only ever reaches the one-off `dotnet ef
+database update` step inside the CI job; it is never passed to either IIS-hosted app process
+directly. If `ConnectionStrings__DefaultConnection` was never set for that app's environment (see
+step 5 above -- machine-level for IFWEMS, or per-app-pool for TETA), the running app falls back to
+the placeholder committed in its `appsettings.Production.json`/`appsettings.json`
+(`Password=REPLACE_ME` or the local `(localdb)` connection string), so every database call --
+including the ready check and login -- fails. Since the two apps' failures are independent, one
+can be healthy while the other is not; check the specific app's own environment variable.
 
 Fix, on the VPS itself:
 
-1. Set the machine env var (see step 5's `[Environment]::SetEnvironmentVariable(...)` command
-   for `ConnectionStrings__DefaultConnection`), if it isn't already set.
-2. Run `iisreset` -- not just `Restart-WebAppPool` -- since WAS/W3SVC only re-read the machine
-   environment when those services themselves restart, not on an app-pool recycle alone.
-3. Re-check `http://<vps-ip>/health/ready`; it should now report healthy.
+1. Set the connection string for the affected app (machine-level env var + `iisreset` for
+   IFWEMS, or the app-pool environment variable + pool recycle for TETA — see step 5).
+2. Re-check that app's `/health/ready` URL; it should now report healthy.
 
 If it's still unhealthy after that, confirm the value itself is correct (matches the same
 connection string that was tested successfully with `sqlcmd`/`Test-NetConnection`, including

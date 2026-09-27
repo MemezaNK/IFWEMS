@@ -1,8 +1,19 @@
 name: Deploy to VPS (IIS)
 
 # Runs on a self-hosted GitHub Actions runner installed on the Windows VPS itself.
-# See deploy/README.md for one-time VPS setup instructions (IIS, Hosting Bundle, SQL Server,
-# runner installation).
+#
+# Deploys BOTH applications from this repo, each as its own IIS Application (virtual directory)
+# under one parent IIS site, each with its own dedicated application pool and its own physical
+# folder, so the two run independently -- redeploying/recycling one never stops or restarts the
+# other's worker process:
+#   http://<vps-ip>/IFWEMS/  -> IFWEMS.Api  (existing HR/investigations/compliance system)
+#   http://<vps-ip>/TETA/    -> Teta.Ippcms.Api (new portfolio/procurement/contract system)
+# Both share the same SQL Server database (IFWEMS owns dbo.Users et al.; TETA's own tables live
+# in the separate `teta` schema) but each issues and validates its own JWT (different Issuer /
+# Audience / signing key -- see appsettings.Production.json for each app).
+#
+# See deploy/README.md for one-time VPS setup instructions (IIS parent site + two applications +
+# two app pools, Hosting Bundle, SQL Server, runner installation, GitHub secrets/variables).
 on:
   push:
     branches: [main]
@@ -23,12 +34,12 @@ jobs:
       - name: Verify ASP.NET Core Hosting Bundle is installed
         shell: powershell
         run: |
-          # HTTP 500.19 (Config Error 0x8007000d) on the published site means IIS could not
+          # HTTP 500.19 (Config Error 0x8007000d) on either published app means IIS could not
           # parse the auto-generated web.config's <aspNetCore>/AspNetCoreModuleV2 handler --
           # almost always because the .NET Hosting Bundle (which registers ASP.NET Core
           # Module v2 with IIS) isn't installed on this VPS, or IIS wasn't restarted after it
           # was. Fail fast here with an actionable message instead of only surfacing this as
-          # a smoke-test failure after the DB migration and file copy already ran.
+          # a smoke-test failure after the DB migrations and file copies already ran.
           $ancmPaths = @(
               "$env:ProgramFiles\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll",
               "${env:ProgramFiles(x86)}\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll"
@@ -39,12 +50,24 @@ jobs:
           }
           Write-Host "ASP.NET Core Module v2 found at: $found"
 
-      - name: Publish API (also builds the Angular client into wwwroot)
+      # ---------------------------------------------------------------------------------------
+      # Publish (each `dotnet publish` transitively runs `npm ci` + `ng build --configuration
+      # production` for that app's own Angular client and copies the output into its wwwroot --
+      # see the BuildAngularApp MSBuild target in each .csproj).
+      # ---------------------------------------------------------------------------------------
+      - name: Publish IFWEMS (API + Angular client)
         shell: powershell
-        run: |
-          dotnet publish src/IFWEMS.Api/IFWEMS.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish"
+        run: dotnet publish src/IFWEMS.Api/IFWEMS.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish-ifwems"
 
-      - name: Apply EF Core migrations
+      - name: Publish TETA (API + Angular client)
+        shell: powershell
+        run: dotnet publish src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish-teta"
+
+      # ---------------------------------------------------------------------------------------
+      # EF Core migrations -- both apps share one database, so both migration commands point at
+      # the same connection string but at each app's own DbContext / migrations project.
+      # ---------------------------------------------------------------------------------------
+      - name: Apply EF Core migrations (both apps)
         shell: powershell
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.PROD_CONNECTION_STRING }}
@@ -65,10 +88,11 @@ jobs:
           # global install, so it works regardless of which account runs the runner service.
           dotnet tool restore
 
-          # --configuration Release matches the Release build the previous step just produced.
+          # --configuration Release matches the Release build the publish steps just produced.
           # Leaving this unset makes dotnet-ef default to Debug and re-evaluate the project from
           # scratch against a checkout whose obj/ cache was last written for Release -- that
           # mismatch is what has been producing "Missing required option '--assembly'" here.
+          Write-Host "Migrating IFWEMS database..."
           dotnet ef database update `
             --project src/IFWEMS.Infrastructure `
             --startup-project src/IFWEMS.Api `
@@ -76,56 +100,96 @@ jobs:
             --connection "$env:ConnectionStrings__DefaultConnection" `
             --verbose
 
-      - name: Stop IIS site
+          Write-Host "Migrating TETA database (separate 'teta' schema, same server/database)..."
+          dotnet ef database update `
+            --project src/Teta.Ippcms.Infrastructure `
+            --startup-project src/Teta.Ippcms.Api `
+            --configuration Release `
+            --connection "$env:ConnectionStrings__DefaultConnection" `
+            --verbose
+
+      # ---------------------------------------------------------------------------------------
+      # Deploy IFWEMS: recycle only its own app pool (never the parent site or TETA's pool), so
+      # the two applications keep running independently of each other.
+      # ---------------------------------------------------------------------------------------
+      - name: Stop IFWEMS app pool
         shell: powershell
         run: |
           Import-Module WebAdministration
-          # Stop-WebSite/Stop-WebAppPool throw a terminating InvalidOperationException
-          # when the item is already stopped, which -ErrorAction SilentlyContinue does
-          # NOT suppress (these IIS provider cmdlets call ThrowTerminatingError). Use
-          # try/catch instead so an already-stopped site/pool never fails the job.
+          # Stop-WebAppPool throws a terminating InvalidOperationException when the pool is
+          # already stopped, which -ErrorAction SilentlyContinue does NOT suppress (this IIS
+          # provider cmdlet calls ThrowTerminatingError). Use try/catch instead so an
+          # already-stopped pool never fails the job.
           try {
-              Stop-WebSite -Name "${{ vars.IIS_SITE_NAME }}" -ErrorAction Stop
+              Stop-WebAppPool -Name "${{ vars.IFWEMS_APP_POOL_NAME }}" -ErrorAction Stop
           } catch {
-              Write-Host "Stop-WebSite: $($_.Exception.Message)"
-          }
-          try {
-              Stop-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}" -ErrorAction Stop
-          } catch {
-              Write-Host "Stop-WebAppPool: $($_.Exception.Message)"
+              Write-Host "Stop-WebAppPool (IFWEMS): $($_.Exception.Message)"
           }
 
-      - name: Deploy published output
+      - name: Deploy IFWEMS published output
         shell: powershell
         run: |
-          $dest = "${{ vars.IIS_SITE_PATH }}"
-          robocopy "$env:RUNNER_TEMP/publish" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
+          $dest = "${{ vars.IFWEMS_SITE_PATH }}"
+          robocopy "$env:RUNNER_TEMP/publish-ifwems" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
           $robocopyExit = $LASTEXITCODE
           if ($robocopyExit -ge 8) { throw "robocopy failed with exit code $robocopyExit" }
           # Robocopy exit codes 0-7 are success (a bitmask of "files copied"/"extra
-          # files"/"mismatch", not failure). PowerShell propagates the last
-          # $LASTEXITCODE as the process exit code, which would otherwise make
-          # GitHub Actions treat a successful robocopy (e.g. exit code 1) as a
-          # step failure. Reset it now that we've confirmed it's a success code.
+          # files"/"mismatch", not failure). PowerShell propagates the last $LASTEXITCODE as
+          # the process exit code, which would otherwise make GitHub Actions treat a
+          # successful robocopy (e.g. exit code 1) as a step failure. Reset it now that we've
+          # confirmed it's a success code.
           Write-Host "robocopy exit code $robocopyExit (0-7 = success)"
           $LASTEXITCODE = 0
           exit 0
 
-      - name: Start IIS site
+      - name: Start IFWEMS app pool
         shell: powershell
         run: |
           Import-Module WebAdministration
-          Start-WebAppPool -Name "${{ vars.IIS_APP_POOL_NAME }}"
-          Start-WebSite -Name "${{ vars.IIS_SITE_NAME }}"
+          Start-WebAppPool -Name "${{ vars.IFWEMS_APP_POOL_NAME }}"
 
-      - name: Smoke test
+      # ---------------------------------------------------------------------------------------
+      # Deploy TETA: same pattern, its own app pool only.
+      # ---------------------------------------------------------------------------------------
+      - name: Stop TETA app pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          try {
+              Stop-WebAppPool -Name "${{ vars.TETA_APP_POOL_NAME }}" -ErrorAction Stop
+          } catch {
+              Write-Host "Stop-WebAppPool (TETA): $($_.Exception.Message)"
+          }
+
+      - name: Deploy TETA published output
+        shell: powershell
+        run: |
+          $dest = "${{ vars.TETA_SITE_PATH }}"
+          robocopy "$env:RUNNER_TEMP/publish-teta" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
+          $robocopyExit = $LASTEXITCODE
+          if ($robocopyExit -ge 8) { throw "robocopy failed with exit code $robocopyExit" }
+          Write-Host "robocopy exit code $robocopyExit (0-7 = success)"
+          $LASTEXITCODE = 0
+          exit 0
+
+      - name: Start TETA app pool
+        shell: powershell
+        run: |
+          Import-Module WebAdministration
+          Start-WebAppPool -Name "${{ vars.TETA_APP_POOL_NAME }}"
+
+      # ---------------------------------------------------------------------------------------
+      # Smoke test both applications independently -- one failing does not roll back the other,
+      # but the job still fails overall so a broken deploy is visible.
+      # ---------------------------------------------------------------------------------------
+      - name: Smoke test IFWEMS
         shell: powershell
         run: |
           # The app pool's w3wp.exe process (and in-process Kestrel/EF Core startup inside it)
           # can take well over 5 seconds to cold-start after Start-WebAppPool, especially on
           # the very first successful start -- IIS returns 503 for that whole window, which is
           # not a real failure. Poll for up to 60s instead of a single one-shot check.
-          $uri = "${{ vars.SITE_HEALTH_URL }}"
+          $uri = "${{ vars.IFWEMS_HEALTH_URL }}"
           $maxWaitSeconds = 60
           $intervalSeconds = 5
           $deadline = (Get-Date).AddSeconds($maxWaitSeconds)
@@ -140,9 +204,34 @@ jobs:
               } catch {
                   $lastError = $_.Exception.Message
               }
-              Write-Host "Health check not ready yet ($lastError), retrying..."
+              Write-Host "IFWEMS health check not ready yet ($lastError), retrying..."
           }
           if (-not $resp -or $resp.StatusCode -ne 200) {
-              throw "Health check failed after ${maxWaitSeconds}s: $lastError"
+              throw "IFWEMS health check failed after ${maxWaitSeconds}s: $lastError"
           }
-          Write-Host "Health check passed: $($resp.StatusCode)"
+          Write-Host "IFWEMS health check passed: $($resp.StatusCode)"
+
+      - name: Smoke test TETA
+        shell: powershell
+        run: |
+          $uri = "${{ vars.TETA_HEALTH_URL }}"
+          $maxWaitSeconds = 60
+          $intervalSeconds = 5
+          $deadline = (Get-Date).AddSeconds($maxWaitSeconds)
+          $lastError = $null
+          $resp = $null
+          while ((Get-Date) -lt $deadline) {
+              Start-Sleep -Seconds $intervalSeconds
+              try {
+                  $resp = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 10
+                  if ($resp.StatusCode -eq 200) { break }
+                  $lastError = "HTTP $($resp.StatusCode)"
+              } catch {
+                  $lastError = $_.Exception.Message
+              }
+              Write-Host "TETA health check not ready yet ($lastError), retrying..."
+          }
+          if (-not $resp -or $resp.StatusCode -ne 200) {
+              throw "TETA health check failed after ${maxWaitSeconds}s: $lastError"
+          }
+          Write-Host "TETA health check passed: $($resp.StatusCode)"

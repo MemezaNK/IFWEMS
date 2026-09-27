@@ -34,9 +34,8 @@ jobs:
           name: dotnet-test-results
           path: "**/test-results.trx"
 
-  # Enabled once src/IFWEMS.Client (Angular) is scaffolded.
-  build-and-test-frontend:
-    name: Build & Test (Angular)
+  build-and-test-frontend-ifwems:
+    name: Build & Test (Angular — IFWEMS)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,6 +47,23 @@ jobs:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: src/IFWEMS.Client/package-lock.json
+      - run: npm ci
+      - run: npm run build -- --configuration production
+      - run: npm test -- --watch=false --browsers=ChromeHeadless
+
+  build-and-test-frontend-teta:
+    name: Build & Test (Angular — TETA)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/Teta.Ippcms.Client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/Teta.Ippcms.Client/package-lock.json
       - run: npm ci
       - run: npm run build -- --configuration production
       - run: npm test -- --watch=false --browsers=ChromeHeadless
