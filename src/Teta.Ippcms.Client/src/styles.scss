@@ -1,0 +1,60 @@
+/* TETA IPPCMS global styles (component styles are kept tiny to respect the style budgets). */
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; background: #f5f6f8; color: #1f2933; }
+
+.page { padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.page-header h1 { font-size: 22px; font-weight: 500; margin: 0; flex: 1 1 auto; }
+.page-header .subtitle { color: #52606d; font-size: 13px; width: 100%; margin-top: -8px; }
+.toolbar-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.spacer { flex: 1 1 auto; }
+.grid { display: grid; gap: 16px; }
+.grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 16px; }
+.card h2 { font-size: 16px; font-weight: 500; margin: 0 0 12px; }
+.muted { color: #616e7c; }
+.small { font-size: 12px; }
+.mono { font-family: "Roboto Mono", monospace; }
+.right { text-align: right; }
+.full-width { width: 100%; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 16px; }
+.dl { display: grid; grid-template-columns: 180px 1fr; gap: 6px 12px; font-size: 14px; }
+.dl dt { color: #616e7c; }
+.dl dd { margin: 0; }
+
+/* Status / RAG chips (accessible: colour + text). */
+.chip { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; background: #e4e7eb; color: #323f4b; white-space: nowrap; }
+.chip.green, .chip.approved, .chip.active, .chip.verified, .chip.passed, .chip.completed, .chip.paid, .chip.accepted, .chip.compliant, .chip.responsive, .chip.recommended, .chip.awarded, .chip.closed-ok { background: #d1f2d9; color: #0b5a1f; }
+.chip.amber, .chip.pending, .chip.pendingapproval, .chip.inprogress, .chip.submitted, .chip.medium, .chip.pendingcertification, .chip.evaluation, .chip.published, .chip.underreview, .chip.draft { background: #fff1c2; color: #7a5200; }
+.chip.red, .chip.rejected, .chip.critical, .chip.high, .chip.overdue, .chip.validationfailed, .chip.noncompliant, .chip.nonresponsive, .chip.cancelled, .chip.expired, .chip.revoked, .chip.error { background: #fde0dd; color: #8a1c10; }
+.chip.low, .chip.info { background: #dbeafe; color: #1e40af; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-left: 5px solid #9aa5b1; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+.kpi.Red { border-left-color: #d03b3b; } .kpi.Amber { border-left-color: #e8a317; } .kpi.Green { border-left-color: #1f9d55; } .kpi.Info { border-left-color: #2563eb; }
+.kpi .value { font-size: 24px; font-weight: 500; }
+.kpi .label { color: #52606d; font-size: 13px; }
+
+table.mat-mdc-table { width: 100%; }
+.mat-mdc-row.clickable { cursor: pointer; }
+.mat-mdc-row.clickable:hover { background: #f0f4f8; }
+.table-wrap { overflow-x: auto; }
+.empty { padding: 24px; text-align: center; color: #7b8794; }
+.warn-banner { background: #fde0dd; color: #8a1c10; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+.info-banner { background: #dbeafe; color: #1e3a8a; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; }
+
+/* Risk heat map */
+.heat { display: grid; grid-template-columns: 40px repeat(5, 1fr); gap: 4px; max-width: 520px; }
+.heat .cell { height: 48px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 500; color: #111; }
+.heat .axis { display: flex; align-items: center; justify-content: center; color: #616e7c; font-size: 12px; }
+
+/* Gantt */
+.gantt-row { display: grid; grid-template-columns: 280px 1fr; align-items: center; min-height: 28px; border-bottom: 1px solid #eef1f4; font-size: 13px; }
+.gantt-track { position: relative; height: 18px; background: #f7f9fb; }
+.gantt-bar { position: absolute; top: 3px; height: 12px; border-radius: 3px; background: #3b82f6; }
+.gantt-bar.critical { background: #d03b3b; }
+.gantt-bar.milestone { width: 12px !important; transform: rotate(45deg); background: #7c3aed; }
+.gantt-progress { position: absolute; top: 3px; height: 12px; border-radius: 3px; background: rgba(0,0,0,.25); }
+
+@media print { .no-print { display: none !important; } .page { padding: 0; } }
