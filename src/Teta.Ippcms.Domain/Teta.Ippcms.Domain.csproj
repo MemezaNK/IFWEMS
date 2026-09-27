@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TETA-IPPCMS domain model: entities, enums and entity-level invariants for all modules. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Teta.Ippcms.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Platform.Core\Platform.Core.csproj" />
+    <ProjectReference Include="..\Shared\Platform.Audit\Platform.Audit.csproj" />
+  </ItemGroup>
+
+</Project>
