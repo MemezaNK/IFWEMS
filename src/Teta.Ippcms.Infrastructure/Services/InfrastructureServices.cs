@@ -73,11 +73,11 @@ public sealed class FileSystemDocumentStorage : IDocumentStorage
         _root = configuration["Documents:RootPath"] is { Length: > 0 } configured
             ? configured
             : Path.Combine(AppContext.BaseDirectory, "App_Data", "documents");
-        Directory.CreateDirectory(_root);
     }
 
     public async Task<StoredFile> SaveAsync(Stream content, string fileName, CancellationToken cancellationToken = default)
     {
+        Directory.CreateDirectory(_root);
         var id = Guid.NewGuid().ToString("N");
         var folder = Path.Combine(_root, id[..2]);
         Directory.CreateDirectory(folder);
