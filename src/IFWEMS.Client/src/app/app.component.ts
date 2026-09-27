@@ -156,6 +156,9 @@ export class AppComponent {
 
   logout(): void {
     this.authService.logout();
-    window.location.href = '/login';
+    // Router-relative navigation so this respects the app's actual base href instead of always
+    // hard-redirecting to the domain root (which broke logout once IFWEMS could be hosted under
+    // a sub-path or its own dedicated site/port).
+    this.router.navigate(['/login']);
   }
 }

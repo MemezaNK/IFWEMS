@@ -42,7 +42,7 @@
           },
           "configurations": {
             "production": {
-              "baseHref": "/IFWEMS/",
+              "baseHref": "/",
               "budgets": [
                 {
                   "type": "initial",

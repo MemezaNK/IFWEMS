@@ -10,24 +10,28 @@ This repo contains two independent web applications that share one server, one d
 few platform-level concerns (security/authentication, audit trail, notifications), but otherwise
 run as separate processes with separate URLs:
 
-| Application | Project | URL | IIS Application | App pool |
+| Application | Project | URL | IIS Site | App pool |
 |---|---|---|---|---|
-| IFWEMS (existing) | `src/IFWEMS.Api` | `http://<vps-ip>/IFWEMS/` | `/IFWEMS` | `IFWEMS` |
-| TETA-IPPCMS (new) | `src/Teta.Ippcms.Api` | `http://<vps-ip>/TETA/` | `/TETA` | `TETA` |
+| IFWEMS (existing) | `src/IFWEMS.Api` | `http://<vps-ip>:8083/` | `IFWEMS` | `IFWEMS` |
+| TETA-IPPCMS (new) | `src/Teta.Ippcms.Api` | `http://<vps-ip>:8082/` | `TETA` | `TETA` |
 
-Both are set up as **IIS Applications** (virtual directories with their own app pool) under one
-parent IIS site, rather than as two separate sites on the same port — that's what makes both
-paths resolve on the same `http://<vps-ip>/` origin. Each application's own Angular production
-build is copied into that application's `wwwroot` at publish time (see the `BuildAngularApp`
-target in [src/IFWEMS.Api/IFWEMS.Api.csproj](../src/IFWEMS.Api/IFWEMS.Api.csproj) and
+**Each app is its own standalone IIS site on its own port**, serving from its own site root
+(base href `/`) — not path-based sub-Applications under one shared site/port. This VPS already
+runs an unrelated system (`iTrack-API`/`iTrack-UI`) that occupies port 80, so a single shared
+"Portal" site on port 80 (an earlier version of this runbook's design) isn't available here;
+each app instead gets its own dedicated port, opened individually in the firewall (see step 1).
+Each application's own Angular production build is copied into that application's `wwwroot` at
+publish time (see the `BuildAngularApp` target in
+[src/IFWEMS.Api/IFWEMS.Api.csproj](../src/IFWEMS.Api/IFWEMS.Api.csproj) and
 [src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj](../src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj)), and
 each `Program.cs` serves it as static files with a SPA fallback to `index.html`. Each Angular
-client is built with its own base href (`/IFWEMS/` / `/TETA/`) and calls a relative `api` base URL
-(`environment.production.ts`), which resolves on the same origin/path — so there is **no CORS and
-no reverse-proxy config** for either app.
+client is built with base href `/` and calls a relative `api` base URL
+(`environment.production.ts`), which resolves on that app's own origin — so there is **no CORS
+and no reverse-proxy config** for either app, just two distinct ports.
 
-Because each application has its **own dedicated app pool**, deploying or recycling one never
-stops or restarts the other's worker process — they run independently, exactly as required. Both
+Because each application is its **own IIS site with its own dedicated app pool**, deploying or
+recycling one never stops or restarts the other's worker process — they run independently,
+exactly as required. Both
 connect to the **same SQL Server database**: IFWEMS owns the shared tables in the default `dbo`
 schema (including `dbo.Users`, the shared identity/login store), while every TETA-specific table
 lives in its own `teta` schema (created automatically by TETA's first EF Core migration). TETA
@@ -103,7 +107,13 @@ Update each app's `appsettings.Production.json` connection string (or, better, o
 machine-level environment variable — see step 5) with this login's password. **Never commit the
 real password.** Both apps' connection strings should point at the same `IfwemsDb` database.
 
-## 3. Create the IIS site, the two applications and their app pools
+## 3. Create the two IIS sites, their own ports, and their app pools
+
+Port 80 on this VPS already belongs to an unrelated, pre-existing system
+(`iTrack-API`/`iTrack-UI`) — so IFWEMS and TETA each get their **own** standalone site on their
+**own** port instead of sharing one site/port via sub-Applications. Pick two free ports (this
+runbook uses `8083` for IFWEMS and `8082` for TETA — check `netstat -ano | findstr LISTENING`
+first to confirm they're actually free on your VPS):
 
 ```powershell
 Import-Module WebAdministration
@@ -114,27 +124,25 @@ foreach ($pool in @("IFWEMS", "TETA")) {
     Set-ItemProperty "IIS:\AppPools\$pool" -Name "managedRuntimeVersion" -Value ""  # No Managed Code — required for ASP.NET Core Module
 }
 
-# One parent site (an empty placeholder folder — nothing is ever published directly into it),
-# with the two applications as sub-paths under it.
-New-Item "C:\inetpub\portal" -ItemType Directory -Force
 New-Item "C:\inetpub\portal\IFWEMS" -ItemType Directory -Force
 New-Item "C:\inetpub\portal\TETA" -ItemType Directory -Force
-New-Website -Name "Portal" -PhysicalPath "C:\inetpub\portal" -ApplicationPool "IFWEMS" -Port 80
 
-New-WebApplication -Site "Portal" -Name "IFWEMS" -PhysicalPath "C:\inetpub\portal\IFWEMS" -ApplicationPool "IFWEMS"
-New-WebApplication -Site "Portal" -Name "TETA" -PhysicalPath "C:\inetpub\portal\TETA" -ApplicationPool "TETA"
+New-Website -Name "IFWEMS" -PhysicalPath "C:\inetpub\portal\IFWEMS" -ApplicationPool "IFWEMS" -Port 8083
+New-Website -Name "TETA" -PhysicalPath "C:\inetpub\portal\TETA" -ApplicationPool "TETA" -Port 8082
 
-# Open the firewall for HTTP
-New-NetFirewallRule -DisplayName "Portal HTTP" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
+# Open the firewall for both ports (in addition to any firewall further upstream — a cloud
+# provider's security group, say — which needs the same two ports opened separately).
+New-NetFirewallRule -DisplayName "IFWEMS HTTP" -Direction Inbound -Protocol TCP -LocalPort 8083 -Action Allow
+New-NetFirewallRule -DisplayName "TETA HTTP" -Direction Inbound -Protocol TCP -LocalPort 8082 -Action Allow
 ```
 
 Leave `C:\inetpub\portal\IFWEMS` and `C:\inetpub\portal\TETA` empty for now — the first CI run (or
-`deploy/deploy.ps1`) populates each one. The parent site's own physical path
-(`C:\inetpub\portal`) never receives any published files; it just anchors the two applications.
+`deploy/deploy.ps1`) populates each one.
 
-If IFWEMS was previously deployed directly at the site root (an earlier version of this runbook
-did that, before TETA existed), move its files into the new `\IFWEMS` subfolder and delete the
-old root-level site/app-pool bindings so the two don't collide on port 80.
+If IFWEMS was previously deployed directly at port 80 (an earlier version of this runbook did
+that, before this VPS's port 80 was claimed by the unrelated `iTrack-*` system), move its files
+into the new site's physical path and remove the old port-80 site/binding so the two don't
+collide.
 
 ## 4. Install a self-hosted GitHub Actions runner on the VPS
 
@@ -181,10 +189,14 @@ Repo → **Settings → Secrets and variables → Actions**:
 | Secret | `PROD_CONNECTION_STRING` | `Server=localhost;Database=IfwemsDb;User Id=ifwems_app;Password=<the real password>;TrustServerCertificate=True;MultipleActiveResultSets=true` |
 | Variable | `IFWEMS_APP_POOL_NAME` | `IFWEMS` |
 | Variable | `IFWEMS_SITE_PATH` | `C:\inetpub\portal\IFWEMS` |
-| Variable | `IFWEMS_HEALTH_URL` | `http://<vps-ip>/IFWEMS/health/ready` |
+| Variable | `IFWEMS_HEALTH_URL` | `http://localhost:8083/health/ready` |
 | Variable | `TETA_APP_POOL_NAME` | `TETA` |
 | Variable | `TETA_SITE_PATH` | `C:\inetpub\portal\TETA` |
-| Variable | `TETA_HEALTH_URL` | `http://<vps-ip>/TETA/health/ready` |
+| Variable | `TETA_HEALTH_URL` | `http://localhost:8082/health/ready` |
+
+(Health checks run **on** the VPS itself, from the same GitHub Actions runner that's hosted
+there — `localhost` plus each app's own port, not the public IP/path. Use whatever ports you
+actually opened in step 3 if you picked different ones.)
 
 > If you set up this VPS before TETA existed, you previously had `IIS_SITE_NAME` / 
 > `IIS_APP_POOL_NAME` / `IIS_SITE_PATH` / `SITE_HEALTH_URL` variables from the old single-app

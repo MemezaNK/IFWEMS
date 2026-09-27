@@ -26,7 +26,7 @@
           },
           "configurations": {
             "production": {
-              "baseHref": "/TETA/",
+              "baseHref": "/",
               "budgets": [
                 { "type": "initial", "maximumWarning": "750kB", "maximumError": "1.5MB" },
                 { "type": "anyComponentStyle", "maximumWarning": "4kB", "maximumError": "10kB" }
