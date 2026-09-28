@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -11,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { NAV, NavGroup } from './nav';
@@ -21,53 +23,232 @@ import { NAV, NavGroup } from './nav';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, MatSidenavModule, MatToolbarModule, MatListModule, MatIconModule,
     MatButtonModule, MatMenuModule, MatBadgeModule, MatTooltipModule, MatDividerModule],
   template: `
-    <mat-sidenav-container style="height: 100vh">
-      <mat-sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile() && navOpen()" (closedStart)="navOpen.set(false)" style="width: 272px" class="no-print">
-        <div style="padding: 16px 16px 8px; font-weight: 500">TETA IPPCMS</div>
-        <mat-nav-list dense>
+    <mat-sidenav-container class="shell">
+      <mat-sidenav [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile() && navOpen()" (closedStart)="navOpen.set(false)"
+                   class="shell-nav no-print">
+        <div class="brand">
+          <div class="brand-mark">T</div>
+          <div class="brand-text">
+            <span class="brand-title">TETA IPPCMS</span>
+            <span class="brand-subtitle">Portfolio &amp; Contracts</span>
+          </div>
+        </div>
+        <mat-nav-list class="nav-list" dense>
           @for (group of groups(); track group.title) {
-            @if (group.title) { <div class="muted small" style="padding: 12px 16px 4px; text-transform: uppercase; letter-spacing: .04em">{{ group.title }}</div> }
-            @for (item of group.items; track item.link) {
-              <a mat-list-item [routerLink]="item.link" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: item.link === '/' }"
-                 (click)="mobile() && navOpen.set(false)">
-                <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                <span matListItemTitle>{{ item.label }}</span>
-              </a>
+            @if (group.title) {
+              <button type="button" class="nav-group-header" (click)="toggleGroup(group.title)"
+                      [attr.aria-expanded]="isGroupOpen(group.title)">
+                <span>{{ group.title }}</span>
+                <mat-icon class="chevron" [class.is-open]="isGroupOpen(group.title)">expand_more</mat-icon>
+              </button>
+              <div class="nav-group-body" [class.is-open]="isGroupOpen(group.title)">
+                <div class="nav-group-inner">
+                  @for (item of group.items; track item.link) {
+                    <a mat-list-item class="nav-item" [routerLink]="item.link" routerLinkActive="active-link"
+                       [routerLinkActiveOptions]="{ exact: item.link === '/' }" (click)="mobile() && navOpen.set(false)">
+                      <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                      <span matListItemTitle>{{ item.label }}</span>
+                    </a>
+                  }
+                </div>
+              </div>
+            } @else {
+              @for (item of group.items; track item.link) {
+                <a mat-list-item class="nav-item" [routerLink]="item.link" routerLinkActive="active-link"
+                   [routerLinkActiveOptions]="{ exact: item.link === '/' }" (click)="mobile() && navOpen.set(false)">
+                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                  <span matListItemTitle>{{ item.label }}</span>
+                </a>
+              }
             }
           }
         </mat-nav-list>
       </mat-sidenav>
       <mat-sidenav-content>
-        <mat-toolbar color="primary" class="no-print" style="position: sticky; top: 0; z-index: 10">
+        <mat-toolbar color="primary" class="shell-toolbar no-print">
           <button mat-icon-button (click)="navOpen.set(!navOpen())" aria-label="Toggle navigation"><mat-icon>menu</mat-icon></button>
-          <span style="margin-left: 8px">TETA · Integrated Portfolio, Procurement &amp; Contract Management</span>
+          <span class="toolbar-title">TETA <span class="toolbar-title-divider">·</span> Integrated Portfolio, Procurement &amp; Contract Management</span>
           <span class="spacer"></span>
           @if (!auth.isSupplier()) {
-            <form (ngSubmit)="search()" style="display: flex; align-items: center; background: rgba(255,255,255,.15); border-radius: 6px; padding: 0 8px; margin-right: 8px">
+            <form (ngSubmit)="search()" class="search-box">
               <mat-icon>search</mat-icon>
-              <input [(ngModel)]="query" name="q" placeholder="Search projects, procurements, contracts, documents…" aria-label="Global search"
-                     style="background: transparent; border: 0; color: white; outline: none; width: 320px; padding: 8px" />
+              <input [(ngModel)]="query" name="q" placeholder="Search projects, procurements, contracts, documents…" aria-label="Global search" />
             </form>
           }
-          <button mat-icon-button routerLink="/notifications" matTooltip="Notifications" aria-label="Notifications">
+          <button mat-icon-button routerLink="/notifications" matTooltip="Notifications" aria-label="Notifications" class="icon-action">
             <mat-icon [matBadge]="unread() || null" matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
           </button>
-          <button mat-button [matMenuTriggerFor]="userMenu">
-            <mat-icon>account_circle</mat-icon> {{ auth.user()?.displayName }}
+          <button mat-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger">
+            <span class="avatar">{{ initials() }}</span>
+            <span class="user-name">{{ auth.user()?.displayName }}</span>
+            <mat-icon class="user-caret">arrow_drop_down</mat-icon>
           </button>
           <mat-menu #userMenu="matMenu">
-            <div style="padding: 8px 16px" class="small muted">{{ auth.user()?.roles?.join(', ') }}</div>
+            <div class="menu-user-roles small muted">{{ auth.user()?.roles?.join(', ') }}</div>
             <mat-divider />
             <button mat-menu-item routerLink="/account"><mat-icon>key</mat-icon> Change password</button>
             <a mat-menu-item href="/IFWEMS/"><mat-icon>launch</mat-icon> Open IFWEMS</a>
             <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon> Sign out</button>
           </mat-menu>
         </mat-toolbar>
-        <router-outlet />
+        <div class="route-fade-host" [@routeFade]="currentUrl()">
+          <router-outlet />
+        </div>
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
-  styles: [`.active-link { background: rgba(37, 99, 235, .1); font-weight: 500; }`]
+  styles: [`
+    .shell { height: 100vh; }
+
+    /* ---------- Sidenav ---------- */
+    .shell-nav {
+      width: 268px;
+      border-right: 1px solid rgba(0, 0, 0, .06);
+      display: flex;
+      flex-direction: column;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1e40af, #2563eb);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+    .brand-title { font-weight: 600; font-size: 14px; letter-spacing: .01em; }
+    .brand-subtitle { font-size: 11px; color: #7b8794; }
+
+    .nav-list { padding-top: 4px; overflow-y: auto; flex: 1 1 auto; }
+    .nav-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 16px 6px;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      color: #7b8794;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color .15s ease;
+    }
+    .nav-group-header:hover { color: #323f4b; }
+    .nav-group-header .chevron {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      transition: transform .18s ease;
+    }
+    .nav-group-header .chevron.is-open { transform: rotate(180deg); }
+
+    .nav-group-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .2s ease;
+    }
+    .nav-group-body.is-open { grid-template-rows: 1fr; }
+    .nav-group-inner { overflow: hidden; min-height: 0; }
+
+    .nav-item {
+      transition: background-color .12s ease, color .12s ease;
+      border-radius: 0 20px 20px 0;
+      margin-right: 8px;
+    }
+    .nav-item:hover { background: rgba(37, 99, 235, .06); }
+    .active-link {
+      background: rgba(37, 99, 235, .1) !important;
+      font-weight: 500;
+      color: #1e40af;
+      box-shadow: inset 3px 0 0 #2563eb;
+    }
+    .active-link .mat-icon { color: #2563eb; }
+
+    /* ---------- Toolbar ---------- */
+    .shell-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      gap: 4px;
+    }
+    .toolbar-title { margin-left: 8px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .toolbar-title-divider { opacity: .6; margin: 0 2px; }
+    .spacer { flex: 1 1 auto; }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, .16);
+      border-radius: 20px;
+      padding: 0 12px;
+      margin-right: 6px;
+      transition: background-color .15s ease, box-shadow .15s ease;
+    }
+    .search-box:focus-within { background: rgba(255, 255, 255, .28); box-shadow: 0 0 0 2px rgba(255, 255, 255, .35); }
+    .search-box mat-icon { opacity: .85; font-size: 20px; width: 20px; height: 20px; }
+    .search-box input {
+      background: transparent;
+      border: 0;
+      color: #fff;
+      outline: none;
+      width: 300px;
+      max-width: 40vw;
+      padding: 9px 0;
+      font-size: 13.5px;
+    }
+    .search-box input::placeholder { color: rgba(255, 255, 255, .75); }
+
+    .icon-action { transition: transform .12s ease; }
+    .icon-action:hover { transform: translateY(-1px); }
+
+    .user-menu-trigger { display: flex; align-items: center; gap: 8px; }
+    .avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .22);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .user-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-caret { opacity: .8; }
+    .menu-user-roles { padding: 8px 16px; }
+
+    /* ---------- Route transition ---------- */
+    .route-fade-host { min-height: calc(100vh - 64px); }
+  `],
+  animations: [
+    trigger('routeFade', [
+      transition('* <=> *', [
+        style({ opacity: 0 }),
+        animate('160ms ease-out', style({ opacity: 1 }))
+      ])
+    ])
+  ]
 })
 export class ShellComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
@@ -75,10 +256,13 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly breakpoints = inject(BreakpointObserver);
   private poll?: ReturnType<typeof setInterval>;
+  private routerSub?: Subscription;
 
   readonly navOpen = signal(true);
   readonly mobile = signal(false);
   readonly unread = signal(0);
+  readonly currentUrl = signal('');
+  readonly openGroups = signal<Set<string>>(new Set());
   query = '';
 
   readonly groups = computed<NavGroup[]>(() => {
@@ -90,14 +274,31 @@ export class ShellComponent implements OnInit, OnDestroy {
     })).filter(g => g.items.length > 0 && !!user);
   });
 
+  readonly initials = computed(() => {
+    const name = this.auth.user()?.displayName ?? '';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  });
+
   ngOnInit(): void {
     this.breakpoints.observe('(max-width: 960px)').subscribe(r => this.mobile.set(r.matches));
     this.refreshUnread();
     this.poll = setInterval(() => this.refreshUnread(), 60_000);
+
+    this.currentUrl.set(this.router.url);
+    this.syncOpenGroupWithRoute();
+    this.routerSub = this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.currentUrl.set(event.urlAfterRedirects);
+        this.syncOpenGroupWithRoute();
+      }
+    });
   }
 
   ngOnDestroy(): void {
     if (this.poll) clearInterval(this.poll);
+    this.routerSub?.unsubscribe();
   }
 
   refreshUnread(): void {
@@ -106,5 +307,26 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   search(): void {
     if (this.query.trim().length >= 2) this.router.navigate(['/search'], { queryParams: { q: this.query.trim() } });
+  }
+
+  toggleGroup(title: string): void {
+    const next = new Set(this.openGroups());
+    if (next.has(title)) next.delete(title); else next.add(title);
+    this.openGroups.set(next);
+  }
+
+  isGroupOpen(title: string): boolean {
+    return this.openGroups().has(title);
+  }
+
+  /** Keeps the sidebar tidy: whichever group contains the active route is expanded automatically. */
+  private syncOpenGroupWithRoute(): void {
+    const url = this.currentUrl().split('?')[0];
+    const match = this.groups().find(g => g.title && g.items.some(i => i.link !== '/' && url.startsWith(i.link)));
+    if (match?.title) {
+      const next = new Set(this.openGroups());
+      next.add(match.title);
+      this.openGroups.set(next);
+    }
   }
 }

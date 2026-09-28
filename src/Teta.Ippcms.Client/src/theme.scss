@@ -1,0 +1,49 @@
+/* TETA IPPCMS Angular Material theme.
+   Replaces the old prebuilt azure-blue.css with a custom theme so we can control density
+   and typography directly -- the prebuilt theme only lets you pick a color palette, it can't
+   shrink the "comfortable" default sizing of form fields, buttons and tables, which is why the
+   app previously looked oversized. Uses the M2 (Material Design 2) theming APIs, forwarded
+   under the `m2-` prefix by @angular/material -- these remain the actively supported path for
+   full control over color, typography and density in Angular Material 18, and are the same
+   system the prebuilt theme this replaces was generated from. */
+
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+/* Smaller, tighter type scale than Material's defaults -- addresses "big fonts". */
+$teta-typography: mat.m2-define-typography-config(
+  $font-family: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+  $headline-1: mat.m2-define-typography-level(30px, 38px, 400),
+  $headline-2: mat.m2-define-typography-level(25px, 32px, 400),
+  $headline-3: mat.m2-define-typography-level(21px, 28px, 400),
+  $headline-4: mat.m2-define-typography-level(19px, 26px, 500),
+  $headline-5: mat.m2-define-typography-level(17px, 24px, 500),
+  $headline-6: mat.m2-define-typography-level(15px, 22px, 500),
+  $subtitle-1: mat.m2-define-typography-level(14px, 20px, 500),
+  $subtitle-2: mat.m2-define-typography-level(13px, 18px, 500),
+  $body-1: mat.m2-define-typography-level(13.5px, 20px, 400),
+  $body-2: mat.m2-define-typography-level(13px, 18px, 400),
+  $caption: mat.m2-define-typography-level(12px, 16px, 400),
+  $button: mat.m2-define-typography-level(13px, 16px, 500),
+  $overline: mat.m2-define-typography-level(11px, 16px, 500)
+);
+
+$teta-primary: mat.m2-define-palette(mat.$m2-blue-palette, 700, 400, 900);
+$teta-accent: mat.m2-define-palette(mat.$m2-indigo-palette, A200, A100, A400);
+$teta-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+/* Density -2: noticeably more compact form fields, buttons, tables and lists than the default
+   "0" (comfortable) density, without going all the way to the most cramped setting -- addresses
+   "big input elements". */
+$teta-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $teta-primary,
+    accent: $teta-accent,
+    warn: $teta-warn,
+  ),
+  typography: $teta-typography,
+  density: -2,
+));
+
+@include mat.all-component-themes($teta-theme);
