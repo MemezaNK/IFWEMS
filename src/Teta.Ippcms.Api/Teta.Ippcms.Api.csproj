@@ -34,7 +34,8 @@
     <InternalsVisibleTo Include="Teta.Ippcms.IntegrationTests" />
   </ItemGroup>
 
-  <!-- Builds the Angular client (base href /TETA/) into wwwroot on publish; skip with -p:SkipAngularBuild=true. -->
+  <!-- Builds the Angular client (base href /, served at this app's own IIS site root) into
+       wwwroot on publish; skip with -p:SkipAngularBuild=true. -->
   <PropertyGroup>
     <ClientDir>$(MSBuildProjectDirectory)\..\Teta.Ippcms.Client</ClientDir>
   </PropertyGroup>
@@ -42,7 +43,7 @@
   <Target Name="BuildAngularApp" BeforeTargets="Publish" Condition="'$(SkipAngularBuild)' != 'true'">
     <Message Importance="high" Text="Installing TETA Angular client dependencies..." />
     <Exec Command="npm ci" WorkingDirectory="$(ClientDir)" />
-    <Message Importance="high" Text="Building TETA Angular client (production, base href /TETA/)..." />
+    <Message Importance="high" Text="Building TETA Angular client (production, base href /)..." />
     <Exec Command="npm run build -- --configuration production" WorkingDirectory="$(ClientDir)" />
     <ItemGroup>
       <AngularDist Include="$(ClientDir)\dist\teta.client\browser\**\*.*" />

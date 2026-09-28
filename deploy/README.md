@@ -190,13 +190,20 @@ Repo → **Settings → Secrets and variables → Actions**:
 | Variable | `IFWEMS_APP_POOL_NAME` | `IFWEMS` |
 | Variable | `IFWEMS_SITE_PATH` | `C:\inetpub\portal\IFWEMS` |
 | Variable | `IFWEMS_HEALTH_URL` | `http://localhost:8083/health/ready` |
+| Variable | `IFWEMS_SITE_URL` | `http://localhost:8083/login` |
 | Variable | `TETA_APP_POOL_NAME` | `TETA` |
 | Variable | `TETA_SITE_PATH` | `C:\inetpub\portal\TETA` |
 | Variable | `TETA_HEALTH_URL` | `http://localhost:8082/health/ready` |
+| Variable | `TETA_SITE_URL` | `http://localhost:8082/login` |
 
 (Health checks run **on** the VPS itself, from the same GitHub Actions runner that's hosted
 there — `localhost` plus each app's own port, not the public IP/path. Use whatever ports you
-actually opened in step 3 if you picked different ones.)
+actually opened in step 3 if you picked different ones. `IFWEMS_SITE_URL` / `TETA_SITE_URL` are
+used by the "Smoke test" steps' app-root check — they hit the SPA's own root page in a browser
+sense, not just the API's `/health/ready`, since the API can be healthy while the Angular bundle
+still 404s if it wasn't copied into `wwwroot` during publish. If these two variables aren't set,
+that check fails with an empty/invalid URL rather than a useful error, so set them alongside the
+others above.)
 
 > If you set up this VPS before TETA existed, you previously had `IIS_SITE_NAME` / 
 > `IIS_APP_POOL_NAME` / `IIS_SITE_PATH` / `SITE_HEALTH_URL` variables from the old single-app
