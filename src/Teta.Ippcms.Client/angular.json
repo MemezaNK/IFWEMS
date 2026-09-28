@@ -29,7 +29,7 @@
               "baseHref": "/",
               "budgets": [
                 { "type": "initial", "maximumWarning": "750kB", "maximumError": "1.5MB" },
-                { "type": "anyComponentStyle", "maximumWarning": "8kB", "maximumError": "16kB" }
+                { "type": "anyComponentStyle", "maximumWarning": "12kB", "maximumError": "20kB" }
               ],
               "outputHashing": "all",
               "fileReplacements": [

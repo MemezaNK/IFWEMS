@@ -144,6 +144,11 @@ import { NAV, NavGroup } from './nav';
     .nav-list {
       padding-top: 4px;
       overflow-y: auto;
+      /* Verified live: with only overflow-y set, a vertical scrollbar appearing when a group
+         expands nudges scrollWidth just past clientWidth (a well-known cross-browser quirk), and
+         because the CSS spec computes overflow-x as auto too whenever overflow-y isn't visible,
+         that shows up as a spurious horizontal scrollbar. Pin it off explicitly. */
+      overflow-x: hidden;
       flex: 1 1 auto;
       /* Repoint Material's MDC list colour tokens at our dark palette (belt); the plain color
          overrides below on .nav-item/.mat-icon cover the ligature-icon font either way (suspenders). */
@@ -154,6 +159,17 @@ import { NAV, NavGroup } from './nav';
       --mdc-list-list-item-hover-state-layer-color: #fff;
       --mdc-list-list-item-focus-state-layer-color: #fff;
       --mdc-list-list-item-hover-state-layer-opacity: .06;
+    }
+    /* Sidenav scrollbar thumb needs to be light to show up against the dark navy background --
+       the global (dark-on-light) default from styles.scss would be nearly invisible here. */
+    .shell-nav, .nav-list {
+      scrollbar-color: rgba(255, 255, 255, .25) transparent;
+    }
+    .shell-nav::-webkit-scrollbar-thumb, .nav-list::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, .25);
+    }
+    .shell-nav::-webkit-scrollbar-thumb:hover, .nav-list::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, .4);
     }
     .nav-group-header {
       display: flex;
@@ -270,7 +286,15 @@ import { NAV, NavGroup } from './nav';
     .icon-action { transition: transform .12s ease; color: #fff; }
     .icon-action:hover { transform: translateY(-1px); }
 
-    .user-menu-trigger { display: flex; align-items: center; gap: 8px; color: #fff; flex: 0 0 auto; }
+    /* Verified live: Material's plain (non-icon) mat-button applies its own near-black
+       "unthemed" text colour directly on the button and its label span, which otherwise beats
+       the white colour this element would just inherit from the dark toolbar -- the icon-only
+       toolbar buttons (menu toggle, notifications) don't have this problem, only this one does. */
+    .user-menu-trigger, .user-menu-trigger .mdc-button__label, .user-menu-trigger .mat-icon,
+    .user-menu-trigger .user-name, .user-menu-trigger .user-caret {
+      color: #fff !important;
+    }
+    .user-menu-trigger { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
     .avatar {
       width: 26px;
       height: 26px;

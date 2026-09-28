@@ -4,6 +4,14 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; background:
 
 * { box-sizing: border-box; }
 
+/* Slim, modern scrollbars everywhere instead of the default chunky OS ones (the sidenav overrides
+   the thumb colour to something visible on its dark background -- see shell.component.ts). */
+* { scrollbar-width: thin; scrollbar-color: rgba(17, 24, 39, .25) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: rgba(17, 24, 39, .25); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(17, 24, 39, .4); }
+
 /* Smooth, restrained transitions everywhere by default -- avoids a "flat" static feel without
    the jankiness of animating layout properties like width/height globally. */
 a, button, .card, .kpi, .chip, .mat-mdc-row, .mat-mdc-raised-button, .mat-mdc-outlined-button {
@@ -115,8 +123,11 @@ a, button, .card, .kpi, .chip, .mat-mdc-row, .mat-mdc-raised-button, .mat-mdc-ou
 
 /* ---------- Tables: modern, borderless-row style with a calm sticky header ---------- */
 table.mat-mdc-table { width: 100%; background: transparent; }
-.mat-mdc-header-row {
-  background: #f8fafc;
+/* Verified live that a plain (non-!important) background here loses to Material's own MDC header
+   styles, which is why the header row/cells were rendering transparent (blending into the white
+   table) instead of the intended light distinguishing tint. */
+.mat-mdc-header-row, .mat-mdc-header-row .mat-mdc-header-cell {
+  background-color: #f8fafc !important;
 }
 .mat-mdc-header-cell {
   font-size: 11px !important;
