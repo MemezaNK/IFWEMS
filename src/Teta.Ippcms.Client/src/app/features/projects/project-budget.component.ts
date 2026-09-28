@@ -44,7 +44,8 @@ import { openForm } from '../../shared/form-dialog.component';
           <h2>Financial view (budget · commitments · actuals · accruals · EAC)</h2>
           <div class="kpis">
             <div class="kpi Info"><div class="value">{{ v.actual | currency: 'ZAR' : 'R ' : '1.0-0' }}</div><div class="label">Actual expenditure</div></div>
-            <div class="kpi Info"><div class="value">{{ v.accrued | currency: 'ZAR' : 'R ' : '1.0-0' }}</div><div class="label">Accrued</div></div>
+            <div class="kpi Info"><div class="value">{{ v.accrued | currency: 'ZAR' : 'R ' : '1.0-0' }}</div>
+              <div class="label">Accrued <span class="muted" style="font-weight: 400">(manually captured)</span></div></div>
             <div class="kpi Info"><div class="value">{{ v.invoiced | currency: 'ZAR' : 'R ' : '1.0-0' }}</div><div class="label">Invoiced</div></div>
             <div class="kpi Info"><div class="value">{{ v.paid | currency: 'ZAR' : 'R ' : '1.0-0' }}</div><div class="label">Paid</div></div>
             <div class="kpi" [class.Red]="v.variancePercent > 10" [class.Amber]="v.variancePercent > 5 && v.variancePercent <= 10" [class.Green]="v.variancePercent <= 5">
@@ -53,6 +54,16 @@ import { openForm } from '../../shared/form-dialog.component';
           @if (canForecastCost) { <button mat-stroked-button (click)="recordForecast()">Record cost forecast (EAC)</button> }
           <h2 style="margin-top: 12px">Cash flow (planned payments vs actual)</h2>
           <teta-data-table [columns]="cashColumns" [rows]="v.cashflow" [filterable]="false" [paginate]="false" />
+
+          <div class="toolbar-row" style="margin-top: 16px">
+            <h2 style="margin: 0; flex: 1">Accruals</h2>
+            @if (canManageAccruals) { <button mat-stroked-button (click)="addAccrual()"><mat-icon>add</mat-icon> Accrual</button> }
+          </div>
+          <p class="muted small" style="margin-top: -6px">
+            Manually captured against this project (FR-FIN-008) &mdash; there is no automated ERP feed for accruals yet, unlike commitments, expenditure and payments.
+          </p>
+          <teta-data-table [columns]="accrualColumns" [rows]="accruals()" [filterable]="false" [paginate]="false"
+                            emptyText="No accruals captured for this project yet." />
         </div>
       }
     </div>
@@ -67,6 +78,7 @@ export class ProjectBudgetComponent implements OnChanges {
   readonly summary = signal<any | null>(null);
   readonly revisions = signal<any[]>([]);
   readonly view = signal<any | null>(null);
+  readonly accruals = signal<any[]>([]);
 
   lineColumns: Column[] = [
     { key: 'financialYear', label: 'FY' }, { key: 'costCategory', label: 'Cost category' }, { key: 'fundingSource', label: 'Funding source' },
@@ -78,9 +90,14 @@ export class ProjectBudgetComponent implements OnChanges {
     { key: 'newRevised', label: 'New', type: 'money' }, { key: 'reason', label: 'Reason' }, { key: 'revisedBy', label: 'By' }
   ];
   cashColumns: Column[] = [{ key: 'period', label: 'Month' }, { key: 'planned', label: 'Planned', type: 'money' }, { key: 'actual', label: 'Actual', type: 'money' }];
+  accrualColumns: Column[] = [
+    { key: 'period', label: 'Period' }, { key: 'amount', label: 'Amount', type: 'money' }, { key: 'source', label: 'Source' },
+    { key: 'description', label: 'Description' }, { key: 'isReversed', label: 'Reversed', type: 'bool' }
+  ];
 
   get canManage(): boolean { return this.auth.hasAny(P.budgetManage, P.budgetApprove); }
   get canForecastCost(): boolean { return this.auth.hasAny(P.financeManage, P.executionManage); }
+  get canManageAccruals(): boolean { return this.auth.has(P.financeManage); }
 
   ngOnChanges(): void { this.load(); }
 
@@ -88,7 +105,10 @@ export class ProjectBudgetComponent implements OnChanges {
     const id = this.project.id;
     this.api.get(`projects/${id}/budget`).subscribe(s => this.summary.set(s));
     this.api.get<any[]>(`projects/${id}/budget/revisions`).subscribe(r => this.revisions.set(r));
-    if (this.auth.has(P.financeRead)) this.api.get(`finance/projects/${id}`).subscribe(v => this.view.set(v));
+    if (this.auth.has(P.financeRead)) {
+      this.api.get(`finance/projects/${id}`).subscribe(v => this.view.set(v));
+      this.api.get<any[]>(`finance/projects/${id}/accruals`).subscribe(a => this.accruals.set(a));
+    }
   }
 
   private lineFields() {
@@ -134,5 +154,17 @@ export class ProjectBudgetComponent implements OnChanges {
       { key: 'estimateAtCompletion', label: 'Estimate at completion (R)', type: 'number', required: true, min: 0 },
       { key: 'commentary', label: 'Commentary', type: 'textarea', required: true }] }, '560px');
     if (v) this.api.post(`finance/projects/${this.project.id}/forecasts`, v).subscribe(() => this.load());
+  }
+
+  async addAccrual(): Promise<void> {
+    const v = await openForm(this.dialog, {
+      title: 'Add accrual', intro: 'Captured manually — the ERP interface does not send an accrual message type yet (FR-FIN-008), so this is the only way an accrual enters the financial view.',
+      fields: [
+        { key: 'period', label: 'Period (e.g. 2026/27 Q3)', required: true },
+        { key: 'amount', label: 'Amount (R)', type: 'number', required: true, min: 0 },
+        { key: 'description', label: 'Description', type: 'textarea' }
+      ]
+    }, '520px');
+    if (v) this.api.post(`finance/accruals`, { ...v, projectId: this.project.id }).subscribe(() => this.load());
   }
 }

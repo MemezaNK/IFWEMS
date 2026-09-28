@@ -29,7 +29,7 @@ import { ProjectScheduleComponent } from './project-schedule.component';
           <h1>{{ p.reference }} – {{ p.name }}</h1>
           <teta-status [value]="p.status" /> <teta-status [value]="p.stage" /> <teta-status [value]="p.health" />
           @if (canAudit) { <a mat-stroked-button [routerLink]="['/audit/trail', 'Project', p.id]"><mat-icon>history</mat-icon> Audit trail</a> }
-          <div class="subtitle">{{ p.portfolioName }} › {{ p.programmeName }} · Manager: {{ p.managerName ?? '—' }} · Sponsor: {{ p.sponsorName ?? '—' }}</div>
+          <div class="subtitle">{{ p.portfolioName }} › {{ p.programmeName }} · Manager: {{ p.managerName ?? '—' }} · Sponsor: {{ p.sponsorName ?? '—' }} · Business owner: {{ p.businessOwner ?? '—' }}</div>
         </div>
         <mat-tab-group [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event)" animationDuration="0">
           <mat-tab label="Summary"><teta-project-overview [project]="p" (changed)="load()" /></mat-tab>
