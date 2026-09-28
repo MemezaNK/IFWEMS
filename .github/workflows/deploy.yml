@@ -84,7 +84,7 @@ jobs:
                   $ok = $true
                   break
               }
-              Write-Host "Attempt $attempt: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
+              Write-Host "Attempt ${attempt}: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
           }
           if (-not $ok) {
               throw "dotnet publish for IFWEMS did not produce wwwroot/index.html after $maxAttempts attempts. If this persists across retries it is a real failure, not just flakiness -- check the Angular build output above for actual npm/ng errors."
@@ -111,7 +111,7 @@ jobs:
                   $ok = $true
                   break
               }
-              Write-Host "Attempt $attempt: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
+              Write-Host "Attempt ${attempt}: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
           }
           if (-not $ok) {
               throw "dotnet publish for TETA did not produce wwwroot/index.html after $maxAttempts attempts. If this persists across retries it is a real failure, not just flakiness -- check the Angular build output above for actual npm/ng errors."
