@@ -129,8 +129,20 @@ jobs:
       - name: Deploy IFWEMS published output
         shell: powershell
         run: |
+          $src = "$env:RUNNER_TEMP/publish-ifwems"
           $dest = "${{ vars.IFWEMS_SITE_PATH }}"
-          robocopy "$env:RUNNER_TEMP/publish-ifwems" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
+
+          # Diagnostic only -- confirms whether `dotnet publish`'s own output already has the
+          # Angular bundle *before* robocopy runs, so a future failure here doesn't need
+          # reproducing by hand to tell "publish didn't produce it" from "robocopy dropped it".
+          $srcIndex = Join-Path $src "wwwroot\index.html"
+          if (Test-Path $srcIndex) {
+              Write-Host "Pre-robocopy check: $srcIndex exists ($((Get-Item $srcIndex).Length) bytes)"
+          } else {
+              Write-Host "Pre-robocopy check: $srcIndex is MISSING -- dotnet publish did not produce it."
+          }
+
+          robocopy $src $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
           $robocopyExit = $LASTEXITCODE
           if ($robocopyExit -ge 8) { throw "robocopy failed with exit code $robocopyExit" }
           # Robocopy exit codes 0-7 are success (a bitmask of "files copied"/"extra
@@ -148,6 +160,17 @@ jobs:
           $dest = "${{ vars.IFWEMS_SITE_PATH }}"
           $indexPath = Join-Path $dest "wwwroot\index.html"
           if (-not (Test-Path $indexPath)) {
+              # Dump what's actually there so a failure here is diagnosable from the Actions log
+              # alone, without needing to reproduce it by hand on the VPS afterwards.
+              Write-Host "Contents of ${dest}:"
+              Get-ChildItem $dest -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime | Out-String | Write-Host
+              $wwwrootPath = Join-Path $dest "wwwroot"
+              if (Test-Path $wwwrootPath) {
+                  Write-Host "Contents of ${wwwrootPath}:"
+                  Get-ChildItem $wwwrootPath -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime | Out-String | Write-Host
+              } else {
+                  Write-Host "$wwwrootPath does not exist at all."
+              }
               throw "IFWEMS frontend bundle is missing. Expected published file at $indexPath. The app root will return 404 without it."
           }
           Write-Host "Validated IFWEMS frontend bundle: $indexPath"
@@ -174,8 +197,20 @@ jobs:
       - name: Deploy TETA published output
         shell: powershell
         run: |
+          $src = "$env:RUNNER_TEMP/publish-teta"
           $dest = "${{ vars.TETA_SITE_PATH }}"
-          robocopy "$env:RUNNER_TEMP/publish-teta" $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
+
+          # Diagnostic only -- confirms whether `dotnet publish`'s own output already has the
+          # Angular bundle *before* robocopy runs, so a future failure here doesn't need
+          # reproducing by hand to tell "publish didn't produce it" from "robocopy dropped it".
+          $srcIndex = Join-Path $src "wwwroot\index.html"
+          if (Test-Path $srcIndex) {
+              Write-Host "Pre-robocopy check: $srcIndex exists ($((Get-Item $srcIndex).Length) bytes)"
+          } else {
+              Write-Host "Pre-robocopy check: $srcIndex is MISSING -- dotnet publish did not produce it."
+          }
+
+          robocopy $src $dest /MIR /XD "$dest\logs" /NFL /NDL /NJH
           $robocopyExit = $LASTEXITCODE
           if ($robocopyExit -ge 8) { throw "robocopy failed with exit code $robocopyExit" }
           Write-Host "robocopy exit code $robocopyExit (0-7 = success)"
@@ -188,6 +223,17 @@ jobs:
           $dest = "${{ vars.TETA_SITE_PATH }}"
           $indexPath = Join-Path $dest "wwwroot\index.html"
           if (-not (Test-Path $indexPath)) {
+              # Dump what's actually there so a failure here is diagnosable from the Actions log
+              # alone, without needing to reproduce it by hand on the VPS afterwards.
+              Write-Host "Contents of ${dest}:"
+              Get-ChildItem $dest -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime | Out-String | Write-Host
+              $wwwrootPath = Join-Path $dest "wwwroot"
+              if (Test-Path $wwwrootPath) {
+                  Write-Host "Contents of ${wwwrootPath}:"
+                  Get-ChildItem $wwwrootPath -ErrorAction SilentlyContinue | Format-Table Name, LastWriteTime | Out-String | Write-Host
+              } else {
+                  Write-Host "$wwwrootPath does not exist at all."
+              }
               throw "TETA frontend bundle is missing. Expected published file at $indexPath. The site root will return 404 without it."
           }
           Write-Host "Validated TETA frontend bundle: $indexPath"
