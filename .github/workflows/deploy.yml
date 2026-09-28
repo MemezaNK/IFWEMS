@@ -231,6 +231,15 @@ jobs:
           }
           Write-Host "IFWEMS health check passed: $($resp.StatusCode)"
 
+          # Validate the browser entry point itself. The API can be healthy while the root page still
+          # 404s if the Angular SPA bundle was not copied into wwwroot during publish.
+          $rootUri = "${{ vars.IFWEMS_SITE_URL }}"
+          $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10 -SkipHttpErrorCheck
+          if ($rootResp.StatusCode -ne 200) {
+              throw "IFWEMS app root failed to load (HTTP $($rootResp.StatusCode)): $rootUri"
+          }
+          Write-Host "IFWEMS app root passed: $rootUri"
+
       - name: Smoke test TETA
         shell: powershell
         run: |
@@ -255,3 +264,10 @@ jobs:
               throw "TETA health check failed after ${maxWaitSeconds}s: $lastError"
           }
           Write-Host "TETA health check passed: $($resp.StatusCode)"
+
+          $rootUri = "${{ vars.TETA_SITE_URL }}"
+          $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10 -SkipHttpErrorCheck
+          if ($rootResp.StatusCode -ne 200) {
+              throw "TETA app root failed to load (HTTP $($rootResp.StatusCode)): $rootUri"
+          }
+          Write-Host "TETA app root passed: $rootUri"
