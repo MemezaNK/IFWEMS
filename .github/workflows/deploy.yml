@@ -142,6 +142,16 @@ jobs:
           $LASTEXITCODE = 0
           exit 0
 
+      - name: Validate IFWEMS published frontend bundle
+        shell: powershell
+        run: |
+          $dest = "${{ vars.IFWEMS_SITE_PATH }}"
+          $indexPath = Join-Path $dest "wwwroot\index.html"
+          if (-not (Test-Path $indexPath)) {
+              throw "IFWEMS frontend bundle is missing. Expected published file at $indexPath. The app root will return 404 without it."
+          }
+          Write-Host "Validated IFWEMS frontend bundle: $indexPath"
+
       - name: Start IFWEMS app pool
         shell: powershell
         run: |
@@ -171,6 +181,16 @@ jobs:
           Write-Host "robocopy exit code $robocopyExit (0-7 = success)"
           $LASTEXITCODE = 0
           exit 0
+
+      - name: Validate TETA published frontend bundle
+        shell: powershell
+        run: |
+          $dest = "${{ vars.TETA_SITE_PATH }}"
+          $indexPath = Join-Path $dest "wwwroot\index.html"
+          if (-not (Test-Path $indexPath)) {
+              throw "TETA frontend bundle is missing. Expected published file at $indexPath. The site root will return 404 without it."
+          }
+          Write-Host "Validated TETA frontend bundle: $indexPath"
 
       - name: Start TETA app pool
         shell: powershell
