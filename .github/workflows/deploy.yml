@@ -57,11 +57,65 @@ jobs:
       # ---------------------------------------------------------------------------------------
       - name: Publish IFWEMS (API + Angular client)
         shell: powershell
-        run: dotnet publish src/IFWEMS.Api/IFWEMS.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish-ifwems"
+        run: |
+          # `dotnet publish` triggers an `npm run build` for the Angular client (see the
+          # BuildAngularApp MSBuild target), and that build has intermittently returned success
+          # without actually having finished writing its output to disk yet by the time MSBuild's
+          # Copy task globs for it -- a known class of Windows-specific race with esbuild-based
+          # toolchains under CI-level disk/CPU contention. When that happens, `dotnet publish`
+          # itself still reports success, but the publish output silently ends up with no
+          # wwwroot/index.html at all. Retry a few times and fail loudly and early here, rather
+          # than letting an incomplete publish output flow all the way through robocopy and only
+          # surface three steps later as a generic 500 in the browser.
+          $out = "$env:RUNNER_TEMP/publish-ifwems"
+          $maxAttempts = 3
+          $ok = $false
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+              Write-Host "dotnet publish IFWEMS - attempt $attempt of $maxAttempts"
+              if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+              dotnet publish src/IFWEMS.Api/IFWEMS.Api.csproj -c Release -o $out
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Host "dotnet publish itself failed with exit code $LASTEXITCODE on attempt $attempt"
+                  continue
+              }
+              $indexPath = Join-Path $out "wwwroot\index.html"
+              if (Test-Path $indexPath) {
+                  Write-Host "Confirmed $indexPath exists ($((Get-Item $indexPath).Length) bytes) on attempt $attempt"
+                  $ok = $true
+                  break
+              }
+              Write-Host "Attempt $attempt: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
+          }
+          if (-not $ok) {
+              throw "dotnet publish for IFWEMS did not produce wwwroot/index.html after $maxAttempts attempts. If this persists across retries it is a real failure, not just flakiness -- check the Angular build output above for actual npm/ng errors."
+          }
 
       - name: Publish TETA (API + Angular client)
         shell: powershell
-        run: dotnet publish src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj -c Release -o "$env:RUNNER_TEMP/publish-teta"
+        run: |
+          # See the comment on the IFWEMS publish step above -- same intermittent race, same fix.
+          $out = "$env:RUNNER_TEMP/publish-teta"
+          $maxAttempts = 3
+          $ok = $false
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+              Write-Host "dotnet publish TETA - attempt $attempt of $maxAttempts"
+              if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+              dotnet publish src/Teta.Ippcms.Api/Teta.Ippcms.Api.csproj -c Release -o $out
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Host "dotnet publish itself failed with exit code $LASTEXITCODE on attempt $attempt"
+                  continue
+              }
+              $indexPath = Join-Path $out "wwwroot\index.html"
+              if (Test-Path $indexPath) {
+                  Write-Host "Confirmed $indexPath exists ($((Get-Item $indexPath).Length) bytes) on attempt $attempt"
+                  $ok = $true
+                  break
+              }
+              Write-Host "Attempt $attempt: dotnet publish succeeded but $indexPath is missing -- likely the intermittent Angular build race, retrying."
+          }
+          if (-not $ok) {
+              throw "dotnet publish for TETA did not produce wwwroot/index.html after $maxAttempts attempts. If this persists across retries it is a real failure, not just flakiness -- check the Angular build output above for actual npm/ng errors."
+          }
 
       # ---------------------------------------------------------------------------------------
       # EF Core migrations -- both apps share one database, so both migration commands point at

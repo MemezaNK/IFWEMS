@@ -364,3 +364,33 @@ Fix, on the VPS itself:
 If it's still unhealthy after that, confirm the value itself is correct (matches the same
 connection string that was tested successfully with `sqlcmd`/`Test-NetConnection`, including
 `TrustServerCertificate=True`), and that the `ifwems_app` SQL login has access to `IfwemsDb`.
+
+## Troubleshooting: "Validated {IFWEMS,TETA} published frontend bundle" fails / `wwwroot/index.html` missing
+
+This has shown up intermittently: `dotnet publish` reports success, but its output has no
+`wwwroot` folder at all -- not even an empty one -- so nothing gets copied by the later
+`robocopy` step, and the app 500s on every non-API request (`MapFallbackToFile("index.html")`
+throws without it). Diagnosed step by step against a real failing run: the Angular build and
+`dotnet publish` both worked perfectly every time they were reproduced by hand on the VPS, and
+`robocopy` faithfully copied everything it was actually given (confirmed via a failing run's own
+diagnostic output -- every DLL, `web.config`, `appsettings.json` and the locale subfolders were
+present at the destination, just no `wwwroot`). That combination -- works by hand, works in some
+CI runs, silently produces nothing in others, and robocopy is provably innocent -- points to a
+Windows-specific race in the Angular build's own file-write completion: `npm run build` (which
+uses esbuild under the hood) can occasionally hand control back to MSBuild a moment before all
+its output files have actually landed on disk, especially under the heavier disk/CPU contention
+of a real CI run building both apps and running migrations around the same time. MSBuild's `Copy`
+task doesn't treat "zero files matched" as an error, so an empty/not-yet-populated `dist` folder
+at the moment it globs silently produces no `wwwroot` at all, and everything downstream keeps
+reporting success.
+
+**Fix already in the pipeline**: the "Publish IFWEMS"/"Publish TETA" steps in `deploy.yml` retry
+`dotnet publish` up to 3 times, explicitly checking for `wwwroot/index.html` in the output after
+each attempt, and fail the job immediately and clearly if it's still missing after all retries --
+instead of letting an incomplete publish flow through robocopy and only surfacing three steps
+later as a generic 500 in the browser. If you see this error, check the "Publish IFWEMS (API +
+Angular client)" / "Publish TETA (API + Angular client)" step's own log first: if it shows more
+than one attempt, the retry caught something and you're looking at leftover *evidence*, not a
+live failure -- re-run the workflow. If it fails after all 3 attempts, that means something is
+genuinely broken (a real `npm`/`ng build` error), not just flaky, and the retry loop's own
+Write-Host output for each attempt will show it directly.
