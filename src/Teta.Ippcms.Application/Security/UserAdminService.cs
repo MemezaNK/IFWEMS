@@ -26,6 +26,7 @@ public interface IUserAdminService
     Task<IReadOnlyList<UserLookupDto>> LookupAsync(string? search, string? roleCode, CancellationToken ct);
     Task<UserSummaryDto> CreateUserAsync(CreateUserRequest request, CancellationToken ct);
     Task<UserSummaryDto> SetActiveAsync(Guid userId, bool active, string reason, CancellationToken ct);
+    Task<UserSummaryDto> SetMfaAsync(Guid userId, bool enabled, string reason, CancellationToken ct);
     Task<UserSummaryDto> UnlockAsync(Guid userId, CancellationToken ct);
     Task<AssignmentDto> RequestAssignmentAsync(RequestAssignmentRequest request, CancellationToken ct);
     Task<AssignmentDto> DecideAssignmentAsync(Guid assignmentId, DecideAssignmentRequest request, CancellationToken ct);
@@ -107,6 +108,28 @@ public sealed class UserAdminService : IUserAdminService
         user.ModifiedBy = _user.Username;
         if (!active) await RevokeAllSessionsAsync(userId, "Account deactivated", ct);
         _audit.Write("Security", "User", userId.ToString(), active ? "UserActivated" : "UserDeactivated", new { user.Username }, reason);
+        await _db.SaveChangesAsync(ct);
+        return (await ToDtosAsync(new[] { user }, ct))[0];
+    }
+
+    public async Task<UserSummaryDto> SetMfaAsync(Guid userId, bool enabled, string reason, CancellationToken ct)
+    {
+        new Validator().Required("reason", reason, 500).ThrowIfInvalid();
+        if (userId == _user.UserId) throw new DomainException("You cannot change your own MFA setting.", "SEC-005");
+        var user = await _db.Users.SingleOrDefaultAsync(u => u.Id == userId, ct) ?? throw new NotFoundException("User", userId);
+        var profile = await _db.UserSecurityProfiles.SingleOrDefaultAsync(p => p.UserId == userId, ct) ?? new UserSecurityProfile { UserId = userId };
+        if (profile.UserId == Guid.Empty) _db.UserSecurityProfiles.Add(profile);
+
+        if (enabled && string.IsNullOrWhiteSpace(profile.MfaSecretProtected))
+            throw new DomainException("This user has not completed MFA enrolment yet. Ask them to sign in and set up an authenticator app first.", "SEC-002");
+
+        profile.MfaEnabled = enabled;
+        profile.MfaEnrolledAtUtc = enabled ? (profile.MfaEnrolledAtUtc ?? _clock.UtcNow) : null;
+        user.MfaEnabled = enabled;
+        user.ModifiedAtUtc = _clock.UtcNow;
+        user.ModifiedBy = _user.Username;
+        _audit.Write("Security", "User", userId.ToString(), enabled ? "MfaEnabled" : "MfaDisabled",
+            new { user.Username, user.MfaEnabled, profile.MfaEnrolledAtUtc }, reason);
         await _db.SaveChangesAsync(ct);
         return (await ToDtosAsync(new[] { user }, ct))[0];
     }

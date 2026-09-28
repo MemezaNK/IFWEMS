@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Platform.Core;
 using Platform.Security.Mfa;
 using Teta.Ippcms.Application.Admin;
 using Teta.Ippcms.Application.Common;
@@ -81,6 +82,34 @@ public sealed class PlatformAndReportingTests : IClassFixture<ScenarioFixture>
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/v1/auth/logout", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Security_administrator_can_enable_and_disable_mfa_for_a_user()
+    {
+        var sec = await _cast.AsAsync(Roles.SecurityAdministrator);
+        var targetId = _factory.CreateUser("sec.mfa.target", Roles.Cfo);
+
+        // User is enrolled with MFA before the administrator disables it.
+        var target = _factory.CreateClient();
+        var login = await Post<LoginResult>(target, "/api/v1/auth/login", new LoginRequest("sec.mfa.target", TetaApiFactory.Password));
+        Assert.True(login.MfaEnrolmentRequired);
+        var enrol = await Post<MfaEnrolmentDto>(target, "/api/v1/auth/mfa/enrol", new { challengeToken = login.ChallengeToken });
+        var totp = new TotpService();
+        var confirmed = await Post<LoginResult>(target, "/api/v1/auth/mfa/enrol/confirm", new MfaConfirmRequest(enrol.ChallengeToken, totp.ComputeCode(enrol.Secret, DateTime.UtcNow)));
+        Assert.True(confirmed.Succeeded);
+
+        var before = await Get<PagedResult<UserSummaryDto>>(sec, "/api/v1/security/users?search=sec.mfa.target&pageSize=20");
+        Assert.Contains(before.Items, u => u.Id == targetId && u.MfaEnabled);
+
+        var disabled = await Post<UserSummaryDto>(sec, $"/api/v1/security/users/{targetId}/mfa", new { enabled = false, reason = "Temporary reset" });
+        Assert.False(disabled.MfaEnabled);
+
+        var reloaded = await Get<PagedResult<UserSummaryDto>>(sec, "/api/v1/security/users?search=sec.mfa.target&pageSize=20");
+        Assert.Contains(reloaded.Items, u => u.Id == targetId && !u.MfaEnabled);
+
+        var reenabled = await Post<UserSummaryDto>(sec, $"/api/v1/security/users/{targetId}/mfa", new { enabled = true, reason = "Re-enabled after reset" });
+        Assert.True(reenabled.MfaEnabled);
     }
 
     [Fact]

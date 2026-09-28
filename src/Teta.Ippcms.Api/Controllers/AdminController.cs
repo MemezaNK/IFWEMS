@@ -149,6 +149,7 @@ public sealed class SecurityController : TetaControllerBase
     }
 
     public sealed record SetActiveRequest(bool Active, string Reason);
+    public sealed record SetMfaRequest(bool Enabled, string Reason);
 
     [HttpGet("users"), HasPermission(Permissions.SecurityUsers, Permissions.AuditRead)]
     public Task<PagedResult<UserSummaryDto>> Users([FromQuery] string? search, [FromQuery] bool tetaOnly = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 50,
@@ -165,6 +166,14 @@ public sealed class SecurityController : TetaControllerBase
     public async Task<UserSummaryDto> SetActive(Guid id, SetActiveRequest request, CancellationToken ct)
     {
         var result = await _users.SetActiveAsync(id, request.Active, request.Reason, ct);
+        TetaClaimsTransformation.Invalidate(_cache, id);
+        return result;
+    }
+
+    [HttpPost("users/{id:guid}/mfa"), HasPermission(Permissions.SecurityUsers)]
+    public async Task<UserSummaryDto> SetMfa(Guid id, SetMfaRequest request, CancellationToken ct)
+    {
+        var result = await _users.SetMfaAsync(id, request.Enabled, request.Reason, ct);
         TetaClaimsTransformation.Invalidate(_cache, id);
         return result;
     }

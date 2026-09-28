@@ -41,6 +41,9 @@ import { assignmentFields, createUserFields } from './security-forms';
             <ng-template #userActions let-row>
               @if (canManage) {
                 <button mat-icon-button (click)="requestAssignment(row, $event)" title="Assign role"><mat-icon>add_moderator</mat-icon></button>
+                <button mat-icon-button (click)="toggleMfa(row, $event)" [title]="row.mfaEnabled ? 'Disable MFA' : 'Enable MFA'">
+                  <mat-icon>{{ row.mfaEnabled ? 'security' : 'security' }}</mat-icon>
+                </button>
                 <button mat-icon-button (click)="toggleActive(row, $event)" [title]="row.isActive ? 'Deactivate' : 'Activate'">
                   <mat-icon>{{ row.isActive ? 'person_off' : 'person' }}</mat-icon>
                 </button>
@@ -121,6 +124,18 @@ export class SecurityUsersComponent implements OnInit {
   async createUser(): Promise<void> {
     const v = await openForm(this.dialog, { title: 'New user', fields: createUserFields() }, '620px');
     if (v) this.api.post('security/users', v).subscribe(() => { this.snack.open('User created.', 'OK', { duration: 3000 }); this.loadUsers(); });
+  }
+
+  async toggleMfa(row: any, e: Event): Promise<void> {
+    e.stopPropagation();
+    const action = row.mfaEnabled ? 'Disable MFA' : 'Enable MFA';
+    const reason = await confirmAction(this.dialog, action, `${action} for ${row.displayName}?`, 'Reason');
+    if (reason === undefined) return;
+    this.api.post(`security/users/${row.id}/mfa`, { enabled: !row.mfaEnabled, reason }).subscribe(() => {
+      this.snack.open(row.mfaEnabled ? 'MFA disabled.' : 'MFA enabled.', 'OK', { duration: 3000 });
+      this.loadUsers();
+      this.selected.set(null);
+    });
   }
 
   async toggleActive(row: any, e: Event): Promise<void> {
