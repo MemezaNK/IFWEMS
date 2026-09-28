@@ -65,9 +65,9 @@ import { NAV, NavGroup } from './nav';
         </mat-nav-list>
       </mat-sidenav>
       <mat-sidenav-content>
-        <mat-toolbar color="primary" class="shell-toolbar no-print">
+        <mat-toolbar class="shell-toolbar no-print">
           <button mat-icon-button (click)="navOpen.set(!navOpen())" aria-label="Toggle navigation"><mat-icon>menu</mat-icon></button>
-          <span class="toolbar-title">TETA <span class="toolbar-title-divider">·</span> Integrated Portfolio, Procurement &amp; Contract Management</span>
+          <span class="toolbar-title">TETA<span class="toolbar-title-full"><span class="toolbar-title-divider">·</span> Integrated Portfolio, Procurement &amp; Contract Management</span></span>
           <span class="spacer"></span>
           @if (!auth.isSupplier()) {
             <form (ngSubmit)="search()" class="search-box">
@@ -98,12 +98,22 @@ import { NAV, NavGroup } from './nav';
     </mat-sidenav-container>
   `,
   styles: [`
+    :host {
+      --nav-bg: #101c34;
+      --nav-hover: rgba(255, 255, 255, .07);
+      --nav-text: #c7d0e0;
+      --nav-text-dim: #8792a8;
+      --nav-border: rgba(255, 255, 255, .08);
+      --nav-active-bg: rgba(59, 130, 246, .22);
+      --nav-accent: #60a5fa;
+    }
     .shell { height: 100vh; }
 
-    /* ---------- Sidenav ---------- */
+    /* ---------- Sidenav: dark navy chrome, light content canvas ---------- */
     .shell-nav {
       width: 268px;
-      border-right: 1px solid rgba(0, 0, 0, .06);
+      background: var(--nav-bg);
+      border-right: 1px solid var(--nav-border);
       display: flex;
       flex-direction: column;
     }
@@ -112,13 +122,13 @@ import { NAV, NavGroup } from './nav';
       align-items: center;
       gap: 10px;
       padding: 16px;
-      border-bottom: 1px solid rgba(0, 0, 0, .06);
+      border-bottom: 1px solid var(--nav-border);
     }
     .brand-mark {
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      background: linear-gradient(135deg, #1e40af, #2563eb);
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
       color: #fff;
       display: flex;
       align-items: center;
@@ -128,10 +138,23 @@ import { NAV, NavGroup } from './nav';
       flex: 0 0 auto;
     }
     .brand-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
-    .brand-title { font-weight: 600; font-size: 14px; letter-spacing: .01em; }
-    .brand-subtitle { font-size: 11px; color: #7b8794; }
+    .brand-title { font-weight: 600; font-size: 14px; letter-spacing: .01em; color: #fff; }
+    .brand-subtitle { font-size: 11px; color: var(--nav-text-dim); }
 
-    .nav-list { padding-top: 4px; overflow-y: auto; flex: 1 1 auto; }
+    .nav-list {
+      padding-top: 4px;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      /* Repoint Material's MDC list colour tokens at our dark palette (belt); the plain color
+         overrides below on .nav-item/.mat-icon cover the ligature-icon font either way (suspenders). */
+      --mdc-list-list-item-label-text-color: var(--nav-text);
+      --mdc-list-list-item-leading-icon-icon-color: var(--nav-text-dim);
+      --mdc-list-list-item-hover-label-text-color: #fff;
+      --mdc-list-list-item-hover-leading-icon-icon-color: #fff;
+      --mdc-list-list-item-hover-state-layer-color: #fff;
+      --mdc-list-list-item-focus-state-layer-color: #fff;
+      --mdc-list-list-item-hover-state-layer-opacity: .06;
+    }
     .nav-group-header {
       display: flex;
       align-items: center;
@@ -141,7 +164,7 @@ import { NAV, NavGroup } from './nav';
       margin: 0;
       border: 0;
       background: transparent;
-      color: #7b8794;
+      color: var(--nav-text-dim);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
@@ -150,7 +173,7 @@ import { NAV, NavGroup } from './nav';
       font-family: inherit;
       transition: color .15s ease;
     }
-    .nav-group-header:hover { color: #323f4b; }
+    .nav-group-header:hover { color: #fff; }
     .nav-group-header .chevron {
       font-size: 18px;
       width: 18px;
@@ -167,43 +190,70 @@ import { NAV, NavGroup } from './nav';
     .nav-group-body.is-open { grid-template-rows: 1fr; }
     .nav-group-inner { overflow: hidden; min-height: 0; }
 
-    .nav-item {
+    .nav-item,
+    .nav-item .mdc-list-item__primary-text,
+    .nav-item .mat-icon {
+      color: var(--nav-text) !important;
       transition: background-color .12s ease, color .12s ease;
+    }
+    .nav-item {
       border-radius: 0 20px 20px 0;
       margin-right: 8px;
     }
-    .nav-item:hover { background: rgba(37, 99, 235, .06); }
-    .active-link {
-      background: rgba(37, 99, 235, .1) !important;
-      font-weight: 500;
-      color: #1e40af;
-      box-shadow: inset 3px 0 0 #2563eb;
+    .nav-item:hover,
+    .nav-item:hover .mdc-list-item__primary-text,
+    .nav-item:hover .mat-icon {
+      background: var(--nav-hover);
+      color: #fff !important;
     }
-    .active-link .mat-icon { color: #2563eb; }
+    .active-link,
+    .active-link .mdc-list-item__primary-text {
+      background: var(--nav-active-bg) !important;
+      font-weight: 600;
+      color: #fff !important;
+      box-shadow: inset 3px 0 0 var(--nav-accent);
+    }
+    .active-link .mat-icon { color: var(--nav-accent) !important; }
 
-    /* ---------- Toolbar ---------- */
+    /* ---------- Toolbar: same dark navy as the sidenav for one unified frame ---------- */
     .shell-toolbar {
       position: sticky;
       top: 0;
       z-index: 10;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      background: var(--nav-bg);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
       gap: 4px;
     }
     .toolbar-title { margin-left: 8px; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .toolbar-title-full { white-space: nowrap; }
     .toolbar-title-divider { opacity: .6; margin: 0 2px; }
     .spacer { flex: 1 1 auto; }
+
+    /* Below ~1024px the full descriptive title competes with the search box; drop the suffix
+       first since the brand mark + "TETA" already identify the app. */
+    @media (max-width: 1024px) {
+      .toolbar-title-full { display: none; }
+    }
+    /* Below ~880px there isn't room for the search box next to notifications/user menu without
+       them colliding -- hide it and rely on the sidenav for navigation (global search is still
+       reachable once the layout has room). */
+    @media (max-width: 880px) {
+      .search-box { display: none; }
+    }
 
     .search-box {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, .16);
+      background: rgba(255, 255, 255, .1);
+      border: 1px solid rgba(255, 255, 255, .12);
       border-radius: 20px;
       padding: 0 12px;
       margin-right: 6px;
       transition: background-color .15s ease, box-shadow .15s ease;
     }
-    .search-box:focus-within { background: rgba(255, 255, 255, .28); box-shadow: 0 0 0 2px rgba(255, 255, 255, .35); }
+    .search-box:focus-within { background: rgba(255, 255, 255, .16); box-shadow: 0 0 0 2px rgba(96, 165, 250, .45); }
     .search-box mat-icon { opacity: .85; font-size: 20px; width: 20px; height: 20px; }
     .search-box input {
       background: transparent;
@@ -211,30 +261,34 @@ import { NAV, NavGroup } from './nav';
       color: #fff;
       outline: none;
       width: 300px;
-      max-width: 40vw;
+      max-width: 32vw;
       padding: 9px 0;
       font-size: 13.5px;
     }
-    .search-box input::placeholder { color: rgba(255, 255, 255, .75); }
+    .search-box input::placeholder { color: rgba(255, 255, 255, .7); }
 
-    .icon-action { transition: transform .12s ease; }
+    .icon-action { transition: transform .12s ease; color: #fff; }
     .icon-action:hover { transform: translateY(-1px); }
 
-    .user-menu-trigger { display: flex; align-items: center; gap: 8px; }
+    .user-menu-trigger { display: flex; align-items: center; gap: 8px; color: #fff; flex: 0 0 auto; }
     .avatar {
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, .22);
-      color: #fff;
+      background: var(--nav-accent);
+      color: #0b162b;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: .02em;
+      flex: 0 0 auto;
     }
     .user-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 700px) {
+      .user-name { display: none; }
+    }
     .user-caret { opacity: .8; }
     .menu-user-roles { padding: 8px 16px; }
 

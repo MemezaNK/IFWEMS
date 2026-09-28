@@ -52,7 +52,7 @@ export interface Column {
       <table mat-table [dataSource]="source" matSort>
         @for (col of columns; track col.key) {
           <ng-container [matColumnDef]="col.key">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ col.label }}</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header [class.right]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">{{ col.label }}</th>
             <td mat-cell *matCellDef="let row" [class.right]="col.type === 'money' || col.type === 'number' || col.type === 'percent'">
               @switch (col.type) {
                 @case ('date') { {{ cell(row, col) | date: 'yyyy-MM-dd' }} }
@@ -62,7 +62,9 @@ export interface Column {
                 @case ('percent') { {{ cell(row, col) | number: '1.0-1' }}% }
                 @case ('status') { <teta-status [value]="cell(row, col)" /> }
                 @case ('bool') { {{ cell(row, col) === true ? 'Yes' : cell(row, col) === false ? 'No' : '' }} }
-                @default { {{ cell(row, col) }} }
+                @default {
+                  <span class="cell-truncate" [matTooltip]="text(row, col)" matTooltipShowDelay="400">{{ cell(row, col) }}</span>
+                }
               }
             </td>
           </ng-container>
@@ -125,6 +127,12 @@ export class DataTableComponent implements OnChanges, AfterViewInit {
 
   cell(row: any, col: Column): any {
     return col.value ? col.value(row) : row?.[col.key];
+  }
+
+  /** Plain-string form of a cell's value, for the truncated-text tooltip. */
+  text(row: any, col: Column): string {
+    const v = this.cell(row, col);
+    return v === null || v === undefined ? '' : String(v);
   }
 
   applyFilter(): void {

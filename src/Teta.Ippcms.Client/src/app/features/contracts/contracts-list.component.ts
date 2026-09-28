@@ -37,7 +37,7 @@ import { ReferenceService } from '../../core/reference.service';
         </mat-form-field>
         <mat-checkbox [(ngModel)]="expiringOnly" (ngModelChange)="load()">Expiring within 90 days</mat-checkbox>
       </div>
-      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" emptyText="No contracts found." exportName="contracts" />
+      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" emptyText="No contracts found." exportName="contracts" [filterable]="false" />
     </div>
   `
 })

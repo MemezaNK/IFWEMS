@@ -32,7 +32,7 @@ import { beneficiaryFields } from './monitoring-forms';
           <input matInput [(ngModel)]="search" (ngModelChange)="load()" />
         </mat-form-field>
       </div>
-      <teta-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyText="No beneficiaries registered." exportName="beneficiaries" />
+      <teta-data-table [columns]="columns" [rows]="rows()" [actions]="actions" emptyText="No beneficiaries registered." exportName="beneficiaries" [filterable]="false" />
       <ng-template #actions let-row>
         @if (canReveal) { <button mat-icon-button matTooltip="Reveal identifier" (click)="reveal(row)"><mat-icon>visibility</mat-icon></button> }
         @if (canManage && row.potentialDuplicate) { <button mat-icon-button matTooltip="Resolve duplicate" (click)="resolveDuplicate(row)"><mat-icon>content_copy</mat-icon></button> }

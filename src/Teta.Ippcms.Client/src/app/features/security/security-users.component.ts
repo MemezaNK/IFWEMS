@@ -37,7 +37,7 @@ import { assignmentFields, createUserFields } from './security-forms';
               @if (canManage) { <button mat-flat-button color="primary" (click)="createUser()"><mat-icon>person_add</mat-icon> New user</button> }
             </div>
             <teta-data-table [columns]="userColumns" [rows]="users()" [actions]="canManage ? userActions : undefined" (rowClick)="select($event)"
-                              emptyText="No users found." exportName="users" />
+                              emptyText="No users found." exportName="users" [filterable]="false" />
             <ng-template #userActions let-row>
               @if (canManage) {
                 <button mat-icon-button (click)="requestAssignment(row, $event)" title="Assign role"><mat-icon>add_moderator</mat-icon></button>

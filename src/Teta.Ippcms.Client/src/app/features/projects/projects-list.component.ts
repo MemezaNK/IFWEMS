@@ -37,7 +37,7 @@ const STATUSES = ['Concept', 'BusinessCase', 'SubmittedForApproval', 'Approved',
             @for (h of ['Green', 'Amber', 'Red', 'NotAssessed']; track h) { <mat-option [value]="h">{{ h }}</mat-option> }</mat-select></mat-form-field>
         <mat-form-field subscriptSizing="dynamic"><mat-label>Search</mat-label><input matInput [(ngModel)]="search" (keyup.enter)="load()" /></mat-form-field>
       </div>
-      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" exportName="projects" />
+      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" exportName="projects" [filterable]="false" />
     </div>
   `
 })

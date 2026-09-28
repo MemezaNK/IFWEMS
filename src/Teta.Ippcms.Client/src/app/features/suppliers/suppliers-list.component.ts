@@ -31,7 +31,7 @@ import { supplierFields } from './supplier-forms';
           <input matInput [(ngModel)]="search" (ngModelChange)="load()" placeholder="Name, registration or CSD number" />
         </mat-form-field>
       </div>
-      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" emptyText="No suppliers found." exportName="suppliers" />
+      <teta-data-table [columns]="columns" [rows]="rows()" (rowClick)="open($event)" emptyText="No suppliers found." exportName="suppliers" [filterable]="false" />
     </div>
   `
 })

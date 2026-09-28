@@ -65,7 +65,7 @@ a, button, .card, .kpi, .chip, .mat-mdc-row, .mat-mdc-raised-button, .mat-mdc-ou
 .chip.red, .chip.rejected, .chip.critical, .chip.high, .chip.overdue, .chip.validationfailed, .chip.noncompliant, .chip.nonresponsive, .chip.cancelled, .chip.expired, .chip.revoked, .chip.error { background: #fde0dd; color: #8a1c10; }
 .chip.low, .chip.info { background: #dbeafe; color: #1e40af; }
 
-.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .kpi {
   background: #fff;
   border-radius: 10px;
@@ -76,12 +76,35 @@ a, button, .card, .kpi, .chip, .mat-mdc-row, .mat-mdc-raised-button, .mat-mdc-ou
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .kpi:hover { box-shadow: 0 6px 16px rgba(17, 24, 39, .1); transform: translateY(-2px); }
 .kpi.Red { border-left-color: #d03b3b; } .kpi.Amber { border-left-color: #e8a317; } .kpi.Green { border-left-color: #1f9d55; } .kpi.Info { border-left-color: #2563eb; }
-.kpi .value { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
-.kpi .label { color: #6b7684; font-size: 12px; }
+
+/* Icon chip, tinted to match the tile's RAG status -- gives each KPI a distinct visual anchor
+   instead of a bare number, and reinforces status by colour + icon (not colour alone). */
+.kpi-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(154, 165, 177, .16);
+  color: #5b6472;
+}
+.kpi-icon .mat-icon { font-size: 20px; width: 20px; height: 20px; }
+.kpi.Red .kpi-icon { background: rgba(208, 59, 59, .12); color: #d03b3b; }
+.kpi.Amber .kpi-icon { background: rgba(232, 163, 23, .18); color: #a8720a; }
+.kpi.Green .kpi-icon { background: rgba(31, 157, 85, .12); color: #1f9d55; }
+.kpi.Info .kpi-icon { background: rgba(37, 99, 235, .12); color: #2563eb; }
+
+.kpi-body { min-width: 0; }
+.kpi .value { font-size: 21px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; }
+.kpi .label { color: #6b7684; font-size: 12px; line-height: 1.3; }
 
 /* ---------- Tables: modern, borderless-row style with a calm sticky header ---------- */
 table.mat-mdc-table { width: 100%; background: transparent; }
@@ -100,6 +123,22 @@ table.mat-mdc-table { width: 100%; background: transparent; }
 .mat-mdc-row.clickable { cursor: pointer; }
 .mat-mdc-row.clickable:hover { background: #f5f8fc; }
 .mat-mdc-row:last-child .mat-mdc-cell { border-bottom: 0 !important; }
+
+/* Numeric/currency columns: right-align both the header and the cells so figures line up and
+   are easy to scan -- MDC table cells lay their content out with flexbox, so justify-content is
+   needed alongside text-align. */
+.mat-mdc-header-cell.right, .mat-mdc-cell.right { text-align: right; justify-content: flex-end; }
+
+/* Free-text cells (names, programme, description, ...) no longer wrap across several lines and
+   blow out the row height -- they truncate with an ellipsis and show the full value on hover. */
+.cell-truncate {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
 .table-wrap {
   overflow-x: auto;
   background: #fff;
