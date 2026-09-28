@@ -333,10 +333,25 @@ jobs:
 
           # Validate the browser entry point itself. The API can be healthy while the root page still
           # 404s if the Angular SPA bundle was not copied into wwwroot during publish.
+          #
+          # -SkipHttpErrorCheck is a PowerShell 7+ Invoke-WebRequest parameter that does not exist
+          # in Windows PowerShell 5.1 (what this runner actually uses -- see the "shell:" line in
+          # the Actions log, powershell.EXE not pwsh.exe). Use try/catch instead: on a non-2xx
+          # response Invoke-WebRequest throws in 5.1, but the response (and its status code) is
+          # still available on the exception.
           $rootUri = "${{ vars.IFWEMS_SITE_URL }}"
-          $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10 -SkipHttpErrorCheck
-          if ($rootResp.StatusCode -ne 200) {
-              throw "IFWEMS app root failed to load (HTTP $($rootResp.StatusCode)): $rootUri"
+          try {
+              $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10
+              $rootStatus = [int]$rootResp.StatusCode
+          } catch {
+              if ($_.Exception.Response) {
+                  $rootStatus = [int]$_.Exception.Response.StatusCode
+              } else {
+                  throw "IFWEMS app root failed to load ($($_.Exception.Message)): $rootUri"
+              }
+          }
+          if ($rootStatus -ne 200) {
+              throw "IFWEMS app root failed to load (HTTP $rootStatus): $rootUri"
           }
           Write-Host "IFWEMS app root passed: $rootUri"
 
@@ -365,9 +380,20 @@ jobs:
           }
           Write-Host "TETA health check passed: $($resp.StatusCode)"
 
+          # See the comment on the IFWEMS smoke test above -- -SkipHttpErrorCheck doesn't exist in
+          # the Windows PowerShell 5.1 this runner actually uses; try/catch works in both.
           $rootUri = "${{ vars.TETA_SITE_URL }}"
-          $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10 -SkipHttpErrorCheck
-          if ($rootResp.StatusCode -ne 200) {
-              throw "TETA app root failed to load (HTTP $($rootResp.StatusCode)): $rootUri"
+          try {
+              $rootResp = Invoke-WebRequest -Uri $rootUri -UseBasicParsing -TimeoutSec 10
+              $rootStatus = [int]$rootResp.StatusCode
+          } catch {
+              if ($_.Exception.Response) {
+                  $rootStatus = [int]$_.Exception.Response.StatusCode
+              } else {
+                  throw "TETA app root failed to load ($($_.Exception.Message)): $rootUri"
+              }
+          }
+          if ($rootStatus -ne 200) {
+              throw "TETA app root failed to load (HTTP $rootStatus): $rootUri"
           }
           Write-Host "TETA app root passed: $rootUri"
