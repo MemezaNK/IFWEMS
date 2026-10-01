@@ -134,6 +134,96 @@ public static class ReportExport
         return ms.ToArray();
     }
 
+    /// <summary>
+    /// A workbook with one sheet per table, used for consolidated multi-tab management reports
+    /// (e.g. Learner Delivery &amp; Monitoring Report) so each tab's raw data is still available in Excel.
+    /// </summary>
+    public static byte[] XlsxMultiSheet(IReadOnlyList<ReportTable> sheets)
+    {
+        using var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var overrides = string.Concat(Enumerable.Range(1, sheets.Count).Select(i =>
+                $"<Override PartName=\"/xl/worksheets/sheet{i}.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"));
+            Add(zip, "[Content_Types].xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+                "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
+                overrides +
+                "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>" +
+                "</Types>");
+            Add(zip, "_rels/.rels",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
+                "</Relationships>");
+
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sheetEntries = string.Concat(sheets.Select((s, i) =>
+                $"<sheet name=\"{SecurityElement.Escape(SheetName(s.Code, i, usedNames))}\" sheetId=\"{i + 1}\" r:id=\"rId{i + 1}\"/>"));
+            Add(zip, "xl/workbook.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                $"<sheets>{sheetEntries}</sheets></workbook>");
+
+            var relEntries = string.Concat(sheets.Select((_, i) =>
+                $"<Relationship Id=\"rId{i + 1}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet{i + 1}.xml\"/>"));
+            Add(zip, "xl/_rels/workbook.xml.rels",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                relEntries +
+                $"<Relationship Id=\"rId{sheets.Count + 1}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
+                "</Relationships>");
+            Add(zip, "xl/styles.xml", StylesXml);
+
+            for (var i = 0; i < sheets.Count; i++)
+            {
+                var table = sheets[i];
+                var sheet = new StringBuilder();
+                sheet.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+                sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>");
+                var r = 1;
+                AppendRow(sheet, r++, new object?[] { table.Title }, bold: true);
+                AppendRow(sheet, r++, new object?[] { "Generated (UTC)", table.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) }, bold: false);
+                foreach (var f in table.Filters.Where(f => !string.IsNullOrEmpty(f.Value)))
+                {
+                    AppendRow(sheet, r++, new object?[] { f.Key, f.Value }, bold: false);
+                }
+                r++;
+                AppendRow(sheet, r++, table.Columns.Cast<object?>().ToArray(), bold: true);
+                foreach (var row in table.Rows) AppendRow(sheet, r++, row, bold: false);
+                sheet.Append("</sheetData></worksheet>");
+                Add(zip, $"xl/worksheets/sheet{i + 1}.xml", sheet.ToString());
+            }
+        }
+        return ms.ToArray();
+    }
+
+    private static string SheetName(string code, int index, HashSet<string> used)
+    {
+        var cleaned = new string(code.Where(c => !"[]:*?/\\".Contains(c)).ToArray());
+        if (string.IsNullOrWhiteSpace(cleaned)) cleaned = $"Sheet{index + 1}";
+        if (cleaned.Length > 31) cleaned = cleaned[..31];
+        var name = cleaned;
+        var suffix = 1;
+        while (!used.Add(name)) name = (cleaned.Length > 28 ? cleaned[..28] : cleaned) + "-" + ++suffix;
+        return name;
+    }
+
+    private const string StylesXml =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+        "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">" +
+        "<fonts count=\"2\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"11\"/><name val=\"Calibri\"/></font></fonts>" +
+        "<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>" +
+        "<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>" +
+        "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>" +
+        "<cellXfs count=\"3\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>" +
+        "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +
+        "<xf numFmtId=\"4\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></cellXfs>" +
+        "</styleSheet>";
+
     private static void AppendRow(StringBuilder sb, int rowNumber, object?[] values, bool bold)
     {
         sb.Append("<row r=\"").Append(rowNumber).Append("\">");
@@ -226,7 +316,61 @@ public static class ReportExport
             pages.Add(header.Concat(body.Skip(i).Take(linesPerPage)).ToList());
         }
 
-        var objects = new List<string>();
+        return BuildPdfFromPages(pages);
+    }
+
+    /// <summary>
+    /// A single consolidated PDF combining several section tables under one title and header facts
+    /// (used for board-style management reports such as the Learner Delivery &amp; Monitoring Report).
+    /// Sections flow continuously (page breaks only where content overflows), unlike <see cref="Pdf"/>
+    /// which repeats the table header on every page.
+    /// </summary>
+    public static byte[] PdfSections(string title, DateTime generatedAtUtc, IReadOnlyList<(string Label, string? Value)> headerFacts,
+        IReadOnlyList<(string Heading, IReadOnlyList<string> Columns, IReadOnlyList<object?[]> Rows)> sections)
+    {
+        var charWidth = FontSize * 0.6;
+        var maxChars = (int)((PageWidth - 2 * Margin) / charWidth);
+
+        var lines = new List<string> { title, $"Generated {generatedAtUtc:yyyy-MM-dd HH:mm} UTC" };
+        lines.AddRange(headerFacts.Where(f => !string.IsNullOrEmpty(f.Value)).Select(f => $"{f.Label}: {f.Value}"));
+        lines.Add(string.Empty);
+
+        foreach (var section in sections)
+        {
+            lines.Add(section.Heading);
+            if (section.Columns.Count > 0)
+            {
+                var widths = section.Columns.Select((c, i) =>
+                    Math.Min(40, Math.Max(c.Length, section.Rows.Take(500).Select(r => i < r.Length ? FormatCell(r[i]).Length : 0).DefaultIfEmpty(0).Max()))).ToArray();
+                var total = widths.Sum() + widths.Length - 1;
+                if (total > maxChars)
+                {
+                    var scale = (double)(maxChars - widths.Length + 1) / widths.Sum();
+                    widths = widths.Select(w => Math.Max(4, (int)Math.Floor(w * scale))).ToArray();
+                }
+                string Line(IEnumerable<string> cells) => string.Join(" ", cells.Select((c, i) =>
+                {
+                    var w = widths[i];
+                    var text = c.Replace('\n', ' ').Replace('\r', ' ');
+                    return text.Length > w ? text[..Math.Max(0, w - 1)] + "~" : text.PadRight(w);
+                }));
+                lines.Add(Line(section.Columns));
+                lines.Add(new string('-', Math.Min(maxChars, widths.Sum() + widths.Length - 1)));
+                lines.AddRange(section.Rows.Count == 0 ? new[] { "(no records)" } : section.Rows.Select(r => Line(r.Select(FormatCell))));
+            }
+            lines.Add(string.Empty);
+        }
+
+        var linesPerPage = Math.Max(5, (int)((PageHeight - 2 * Margin) / LineHeight) - 2);
+        var pages = new List<List<string>>();
+        for (var i = 0; i < lines.Count; i += linesPerPage) pages.Add(lines.Skip(i).Take(linesPerPage).ToList());
+        if (pages.Count == 0) pages.Add(new List<string> { "(no content)" });
+
+        return BuildPdfFromPages(pages);
+    }
+
+    private static byte[] BuildPdfFromPages(List<List<string>> pages)
+    {
         // 1: catalog, 2: pages, 3: font; then per page: page object + content stream.
         var pageObjectIds = new List<int>();
         var nextId = 4;

@@ -29,3 +29,5 @@ Thumbs.db
 
 ## IDE
 .idea/
+Claude outputs/
+src/Teta.Ippcms.Api/wwwroot/

@@ -78,6 +78,8 @@ export const routes: Routes = [
       { path: 'reports/analytics', loadComponent: () => import('./features/reports/analytics.component').then(m => m.AnalyticsComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
       { path: 'reports/data-quality', loadComponent: () => import('./features/reports/data-quality.component').then(m => m.DataQualityComponent), ...perm(P.reportsRead, P.dataQualityManage) },
       { path: 'reports/run/:code', loadComponent: () => import('./features/reports/report-run.component').then(m => m.ReportRunComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
+      { path: 'reports/learner-delivery/:projectId', loadComponent: () => import('./features/reports/learner-delivery-report.component').then(m => m.LearnerDeliveryReportComponent), ...perm(P.meRead) },
+      { path: 'reports/learner-delivery', loadComponent: () => import('./features/reports/learner-delivery-report.component').then(m => m.LearnerDeliveryReportComponent), ...perm(P.meRead) },
       { path: 'reports', loadComponent: () => import('./features/reports/reports-catalogue.component').then(m => m.ReportsCatalogueComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
 
       // Supplier portal

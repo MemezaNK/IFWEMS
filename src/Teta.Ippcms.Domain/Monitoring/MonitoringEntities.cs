@@ -158,6 +158,9 @@ public class Beneficiary : AuditableEntity
     public bool PotentialDuplicate { get; set; }
     public string? DuplicateNote { get; set; }
     public bool ConsentObtained { get; set; }
+
+    /// <summary>Intake group label (e.g. "Cohort 1") used for cohort-level delivery reporting (FR-REP learner delivery).</summary>
+    public string? Cohort { get; set; }
 }
 
 public class BeneficiaryStatusHistory : Entity
@@ -168,4 +171,18 @@ public class BeneficiaryStatusHistory : Entity
     public DateTime ChangedAtUtc { get; set; }
     public string? ChangedBy { get; set; }
     public string? Note { get; set; }
+}
+
+/// <summary>
+/// TETA-configurable delivery targets for a learnership/beneficiary project, used solely to compute
+/// contract-vs-actual KPIs on the Learner Delivery &amp; Monitoring Report. One row per project; absence
+/// of a row means targets have not yet been approved/configured (the report shows "Not configured").
+/// </summary>
+public class LearnerDeliveryTarget : AuditableEntity
+{
+    public Guid ProjectId { get; set; }
+    public int ContractedLearners { get; set; }
+    public int LearnersDueForCompletion { get; set; }
+    public int MonitoringVisitsPlanned { get; set; }
+    public int WithdrawalTolerancePercent { get; set; }
 }

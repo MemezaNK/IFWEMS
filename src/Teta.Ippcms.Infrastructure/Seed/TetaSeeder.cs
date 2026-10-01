@@ -1140,6 +1140,7 @@ public sealed class TetaSeeder
         for (var i = 0; i < 20; i++)
         {
             var project = beneficiaryProjects[i % beneficiaryProjects.Length];
+            var occurrence = i / beneficiaryProjects.Length; // 0-4: which beneficiary this is within its project
             var said = $"{8001 + i:D4}01{5000 + i:D4}08";
             var status = i switch { < 3 => BeneficiaryStatus.Registered, < 8 => BeneficiaryStatus.Enrolled, < 13 => BeneficiaryStatus.Participating, < 17 => BeneficiaryStatus.Completed, < 19 => BeneficiaryStatus.Placed, _ => BeneficiaryStatus.DroppedOut };
             var beneficiary = new Beneficiary
@@ -1148,7 +1149,7 @@ public sealed class TetaSeeder
                 IdentifierMasked = Masking.Mask(said, 4), IdentifierType = "SAID", FirstName = firstNames[i % firstNames.Length], LastName = lastNames[(i * 3) % lastNames.Length],
                 Gender = i % 2 == 0 ? "Female" : "Male", BirthYear = 1998 + i % 8, Province = new[] { "Gauteng", "Limpopo", "Mpumalanga", "KwaZulu-Natal" }[i % 4],
                 Intervention = beneficiaryInterventions[Array.IndexOf(beneficiaryProjects, project)], ProviderSupplierId = project == project3 ? supplier3.Id : project == project6 ? supplier2.Id : null,
-                FundingSource = "Discretionary grant", Status = status, ConsentObtained = true
+                FundingSource = "Discretionary grant", Status = status, ConsentObtained = true, Cohort = occurrence < 3 ? "Cohort 1" : "Cohort 2"
             };
             beneficiaries.Add(beneficiary);
         }
@@ -1160,6 +1161,14 @@ public sealed class TetaSeeder
         {
             _db.BeneficiaryStatusHistory.Add(new BeneficiaryStatusHistory { BeneficiaryId = b.Id, FromStatus = BeneficiaryStatus.Participating, ToStatus = b.Status, ChangedAtUtc = _clock.UtcNow.AddDays(-30), ChangedBy = "Bongani Zulu (M&E Officer)", Note = b.Status == BeneficiaryStatus.DroppedOut ? "Withdrew due to relocation." : null });
         }
+
+        // TETA-approved learner delivery targets for the Learner Delivery & Monitoring Report (FR-REP learner
+        // delivery) - drives the Executive Summary KPIs for the four projects that carry a beneficiary register.
+        _db.LearnerDeliveryTargets.AddRange(
+            new LearnerDeliveryTarget { ProjectId = project3.Id, ContractedLearners = 200, LearnersDueForCompletion = 100, MonitoringVisitsPlanned = 8, WithdrawalTolerancePercent = 10 },
+            new LearnerDeliveryTarget { ProjectId = project4.Id, ContractedLearners = 50, LearnersDueForCompletion = 25, MonitoringVisitsPlanned = 4, WithdrawalTolerancePercent = 10 },
+            new LearnerDeliveryTarget { ProjectId = project6.Id, ContractedLearners = 80, LearnersDueForCompletion = 40, MonitoringVisitsPlanned = 6, WithdrawalTolerancePercent = 15 },
+            new LearnerDeliveryTarget { ProjectId = project8.Id, ContractedLearners = 120, LearnersDueForCompletion = 60, MonitoringVisitsPlanned = 8, WithdrawalTolerancePercent = 10 });
 
         // ================================================================================
         // Workflow inbox and notifications: a handful of in-flight approvals for demo users

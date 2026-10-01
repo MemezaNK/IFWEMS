@@ -21,6 +21,7 @@ import { KpiCardsComponent } from '../../shared/kpi-cards.component';
         <a mat-stroked-button routerLink="/reports/board-packs"><mat-icon>menu_book</mat-icon> Board packs</a>
         <a mat-stroked-button routerLink="/reports/analytics"><mat-icon>map</mat-icon> Analytics &amp; map</a>
         <a mat-stroked-button routerLink="/reports/data-quality"><mat-icon>cleaning_services</mat-icon> Data quality</a>
+        <a mat-stroked-button routerLink="/reports/learner-delivery"><mat-icon>school</mat-icon> Learner delivery</a>
       </div>
       @if (dashboard(); as d) {
         <teta-kpis [kpis]="d.kpis" />

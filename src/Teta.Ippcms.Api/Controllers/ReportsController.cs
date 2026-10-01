@@ -11,8 +11,13 @@ namespace Teta.Ippcms.Api.Controllers;
 public sealed class ReportsController : TetaControllerBase
 {
     private readonly IReportingService _reports;
+    private readonly ILearnerDeliveryReportService _learnerDelivery;
 
-    public ReportsController(IReportingService reports) => _reports = reports;
+    public ReportsController(IReportingService reports, ILearnerDeliveryReportService learnerDelivery)
+    {
+        _reports = reports;
+        _learnerDelivery = learnerDelivery;
+    }
 
     [HttpGet("catalogue")]
     public IReadOnlyList<ReportDefinition> Catalogue() => _reports.Catalogue();
@@ -71,4 +76,22 @@ public sealed class ReportsController : TetaControllerBase
 
     [HttpPost("data-quality/scan"), HasPermission(Permissions.DataQualityManage)]
     public async Task<object> Scan(CancellationToken ct) => new { created = await _reports.ScanDataQualityAsync(ct) };
+
+    // ----- Learner Delivery & Monitoring Report (project-scoped interactive dashboard + export) -----
+
+    [HttpGet("learner-delivery/{projectId:guid}"), HasPermission(Permissions.MeRead)]
+    public Task<LearnerDeliveryDashboardDto> LearnerDelivery(Guid projectId, CancellationToken ct) =>
+        _learnerDelivery.GetDashboardAsync(projectId, ct);
+
+    [HttpGet("learner-delivery/{projectId:guid}/export"), HasPermission(Permissions.ReportsExport)]
+    public async Task<IActionResult> ExportLearnerDelivery(Guid projectId, [FromQuery] string format = "pdf", CancellationToken ct = default) =>
+        ExportFile(await _learnerDelivery.ExportAsync(projectId, format, ct));
+
+    [HttpGet("learner-delivery/{projectId:guid}/target"), HasPermission(Permissions.MeRead)]
+    public Task<LearnerDeliveryTargetDto> LearnerDeliveryTarget(Guid projectId, CancellationToken ct) =>
+        _learnerDelivery.GetTargetAsync(projectId, ct);
+
+    [HttpPut("learner-delivery/{projectId:guid}/target"), HasPermission(Permissions.MeManage)]
+    public Task<LearnerDeliveryTargetDto> SaveLearnerDeliveryTarget(Guid projectId, SaveLearnerDeliveryTargetRequest request, CancellationToken ct) =>
+        _learnerDelivery.SaveTargetAsync(projectId, request, ct);
 }

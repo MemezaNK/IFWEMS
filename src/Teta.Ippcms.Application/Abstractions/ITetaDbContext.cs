@@ -129,6 +129,7 @@ public interface ITetaDbContext
     DbSet<CorrectiveAction> CorrectiveActions { get; }
     DbSet<Beneficiary> Beneficiaries { get; }
     DbSet<BeneficiaryStatusHistory> BeneficiaryStatusHistory { get; }
+    DbSet<LearnerDeliveryTarget> LearnerDeliveryTargets { get; }
 
     // Risk / assurance
     DbSet<RiskRatingBand> RiskRatingBands { get; }

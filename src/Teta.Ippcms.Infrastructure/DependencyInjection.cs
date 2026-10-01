@@ -127,6 +127,8 @@ public static class DependencyInjection
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IReportingService, ReportingService>();
+        services.AddScoped<ILearnerDeliveryReportService, LearnerDeliveryReportService>();
+        services.AddScoped<ILearnerDeliveryReportService, LearnerDeliveryReportService>();
         services.AddScoped<IHomeService, HomeService>();
         services.AddScoped<IPortalService, PortalService>();
         services.AddScoped<ISearchService, SearchService>();

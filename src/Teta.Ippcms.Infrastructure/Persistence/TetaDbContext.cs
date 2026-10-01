@@ -130,6 +130,7 @@ public class TetaDbContext : DbContext, ITetaDbContext
     public DbSet<CorrectiveAction> CorrectiveActions => Set<CorrectiveAction>();
     public DbSet<Beneficiary> Beneficiaries => Set<Beneficiary>();
     public DbSet<BeneficiaryStatusHistory> BeneficiaryStatusHistory => Set<BeneficiaryStatusHistory>();
+    public DbSet<LearnerDeliveryTarget> LearnerDeliveryTargets => Set<LearnerDeliveryTarget>();
 
     public DbSet<RiskRatingBand> RiskRatingBands => Set<RiskRatingBand>();
     public DbSet<Risk> Risks => Set<Risk>();
@@ -274,6 +275,8 @@ internal static class TetaModel
         b.Entity<CorrectiveAction>().HasIndex(x => new { x.ParentType, x.ParentId });
         Unique<Beneficiary>(b, x => x.Number);
         b.Entity<Beneficiary>().HasIndex(x => x.IdentifierHash);
+        b.Entity<Beneficiary>().HasIndex(x => new { x.ProjectId, x.Cohort });
+        b.Entity<LearnerDeliveryTarget>().HasIndex(x => x.ProjectId).IsUnique();
 
         Unique<Risk>(b, x => x.Number);
         b.Entity<Risk>().HasIndex(x => new { x.ParentType, x.ParentId });
