@@ -271,7 +271,9 @@ public static class ReportExport
     }
 
     // ---------------- PDF ----------------
-    private const double PageWidth = 842, PageHeight = 595, Margin = 30, FontSize = 7, LineHeight = 9;
+    // Internal (not private) so callers in this assembly building richer, chart-based PDFs (e.g.
+    // ExecutiveSummaryReport) can lay out content on the same A4-landscape page geometry.
+    internal const double PageWidth = 842, PageHeight = 595, Margin = 30, FontSize = 7, LineHeight = 9;
 
     public static byte[] Pdf(ReportTable table)
     {
@@ -428,5 +430,111 @@ public static class ReportExport
             else sb.Append(ch);
         }
         return sb.ToString();
+    }
+
+    // ---------------- PDF with vector charts (no third-party library) ----------------
+
+    /// <summary>
+    /// A single page's PDF content stream, built up with absolute-positioned text and simple vector
+    /// shapes (filled rectangles, lines and polygons). Coordinates are "distance from the top of the
+    /// page" for callers' convenience; they are flipped to PDF's bottom-left origin internally. Used
+    /// for board-ready PDFs that need real bar/pie charts rather than a plain monospace table (e.g.
+    /// the Executive Summary report).
+    /// </summary>
+    public sealed class PdfCanvas
+    {
+        private readonly StringBuilder _sb = new();
+        internal string Content => _sb.ToString();
+
+        private static string F(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+        public void Fill(double r, double g, double b) => _sb.Append(F(r)).Append(' ').Append(F(g)).Append(' ').Append(F(b)).Append(" rg\n");
+
+        public void Stroke(double r, double g, double b) => _sb.Append(F(r)).Append(' ').Append(F(g)).Append(' ').Append(F(b)).Append(" RG\n");
+
+        public void LineWidth(double w) => _sb.Append(F(w)).Append(" w\n");
+
+        /// <summary>Fills a rectangle; <paramref name="yTop"/> is the distance from the top of the page to the rectangle's top edge.</summary>
+        public void FillRect(double x, double yTop, double w, double h) =>
+            _sb.Append(F(x)).Append(' ').Append(F(PageHeight - yTop - h)).Append(' ').Append(F(w)).Append(' ').Append(F(h)).Append(" re f\n");
+
+        public void StrokeRect(double x, double yTop, double w, double h) =>
+            _sb.Append(F(x)).Append(' ').Append(F(PageHeight - yTop - h)).Append(' ').Append(F(w)).Append(' ').Append(F(h)).Append(" re S\n");
+
+        public void Line(double x1, double yTop1, double x2, double yTop2) =>
+            _sb.Append(F(x1)).Append(' ').Append(F(PageHeight - yTop1)).Append(" m ").Append(F(x2)).Append(' ').Append(F(PageHeight - yTop2)).Append(" l S\n");
+
+        /// <summary>Fills a closed polygon (used for pie/donut slices), given top-down coordinates.</summary>
+        public void FillPolygon(IReadOnlyList<(double X, double YTop)> points)
+        {
+            if (points.Count < 3) return;
+            _sb.Append(F(points[0].X)).Append(' ').Append(F(PageHeight - points[0].YTop)).Append(" m ");
+            foreach (var p in points.Skip(1)) _sb.Append(F(p.X)).Append(' ').Append(F(PageHeight - p.YTop)).Append(" l ");
+            _sb.Append("h f\n");
+        }
+
+        /// <summary>Draws left-aligned text at (x, yTop); font is "F1" (Courier), "F2" (Helvetica) or "F3" (Helvetica-Bold).</summary>
+        public void Text(double x, double yTop, string text, double size, string font = "F2", double r = 0, double g = 0, double b = 0)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            _sb.Append("BT ").Append(F(r)).Append(' ').Append(F(g)).Append(' ').Append(F(b)).Append(" rg /").Append(font).Append(' ')
+               .Append(F(size)).Append(" Tf ").Append(F(x)).Append(' ').Append(F(PageHeight - yTop)).Append(" Td (")
+               .Append(PdfEscape(text)).Append(") Tj ET\n");
+        }
+
+        public void TextCentered(double xCenter, double yTop, string text, double size, string font = "F2", double r = 0, double g = 0, double b = 0) =>
+            Text(xCenter - EstimateWidth(text, size, font) / 2, yTop, text, size, font, r, g, b);
+
+        public void TextRightAligned(double xRight, double yTop, string text, double size, string font = "F2", double r = 0, double g = 0, double b = 0) =>
+            Text(xRight - EstimateWidth(text, size, font), yTop, text, size, font, r, g, b);
+
+        /// <summary>Rough glyph-width estimate (Helvetica averages ~0.5em, bold ~0.56em); good enough for non-interactive report layout.</summary>
+        private static double EstimateWidth(string text, double size, string font) => text.Length * size * (font == "F3" ? 0.56 : font == "F1" ? 0.6 : 0.5);
+    }
+
+    /// <summary>Assembles a PDF from pre-built <see cref="PdfCanvas"/> pages (Courier/Helvetica/Helvetica-Bold fonts available as F1/F2/F3).</summary>
+    public static byte[] BuildPdfFromCanvases(IReadOnlyList<PdfCanvas> pages)
+    {
+        // 1: catalog, 2: pages, 3-5: fonts; then per page: page object + content stream.
+        var pageObjectIds = new List<int>();
+        var nextId = 6;
+        var pageObjects = new List<(int PageId, int ContentId, string Content)>();
+        foreach (var page in pages)
+        {
+            var pageId = nextId++;
+            var contentId = nextId++;
+            pageObjectIds.Add(pageId);
+            pageObjects.Add((pageId, contentId, page.Content));
+        }
+
+        var bodies = new SortedDictionary<int, string>
+        {
+            [1] = "<< /Type /Catalog /Pages 2 0 R >>",
+            [2] = $"<< /Type /Pages /Kids [{string.Join(' ', pageObjectIds.Select(id => $"{id} 0 R"))}] /Count {pageObjectIds.Count} >>",
+            [3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
+            [4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            [5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+        };
+        foreach (var (pageId, contentId, content) in pageObjects)
+        {
+            bodies[pageId] =
+                $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PageWidth} {PageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents {contentId} 0 R >>";
+            bodies[contentId] = $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream";
+        }
+
+        var output = new StringBuilder();
+        output.Append("%PDF-1.4\n");
+        var offsets = new Dictionary<int, int>();
+        foreach (var (id, text) in bodies)
+        {
+            offsets[id] = output.Length;
+            output.Append(id).Append(" 0 obj\n").Append(text).Append("\nendobj\n");
+        }
+        var xref = output.Length;
+        var count = bodies.Count + 1;
+        output.Append("xref\n0 ").Append(count).Append('\n').Append("0000000000 65535 f \n");
+        for (var id = 1; id < count; id++) output.Append(offsets[id].ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        output.Append("trailer\n<< /Size ").Append(count).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(output.ToString());
     }
 }

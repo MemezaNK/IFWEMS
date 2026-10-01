@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { P } from '../../core/models';
@@ -12,7 +13,7 @@ import { KpiCardsComponent } from '../../shared/kpi-cards.component';
 @Component({
   selector: 'teta-reports-catalogue',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, MatIconModule, DataTableComponent, KpiCardsComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, MatMenuModule, DataTableComponent, KpiCardsComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -22,6 +23,11 @@ import { KpiCardsComponent } from '../../shared/kpi-cards.component';
         <a mat-stroked-button routerLink="/reports/analytics"><mat-icon>map</mat-icon> Analytics &amp; map</a>
         <a mat-stroked-button routerLink="/reports/data-quality"><mat-icon>cleaning_services</mat-icon> Data quality</a>
         <a mat-stroked-button routerLink="/reports/learner-delivery"><mat-icon>school</mat-icon> Learner delivery</a>
+        <button mat-stroked-button [matMenuTriggerFor]="execMenu"><mat-icon>summarize</mat-icon> Executive summary</button>
+        <mat-menu #execMenu="matMenu">
+          <button mat-menu-item (click)="exportExecutiveSummary('pdf')">PDF (charts &amp; KPIs)</button>
+          <button mat-menu-item (click)="exportExecutiveSummary('xlsx')">Excel (all data)</button>
+        </mat-menu>
       </div>
       @if (dashboard(); as d) {
         <teta-kpis [kpis]="d.kpis" />
@@ -72,5 +78,9 @@ export class ReportsCatalogueComponent implements OnInit {
 
   run(row: any): void {
     this.router.navigate(['/reports/run', row.code]);
+  }
+
+  exportExecutiveSummary(format: string): void {
+    this.api.download('reports/executive-dashboard/export', { format }).subscribe(r => ApiService.saveBlob(r, `executive-summary.${format}`));
   }
 }

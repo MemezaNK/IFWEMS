@@ -12,11 +12,13 @@ public sealed class ReportsController : TetaControllerBase
 {
     private readonly IReportingService _reports;
     private readonly ILearnerDeliveryReportService _learnerDelivery;
+    private readonly IExecutiveSummaryReportService _executiveSummary;
 
-    public ReportsController(IReportingService reports, ILearnerDeliveryReportService learnerDelivery)
+    public ReportsController(IReportingService reports, ILearnerDeliveryReportService learnerDelivery, IExecutiveSummaryReportService executiveSummary)
     {
         _reports = reports;
         _learnerDelivery = learnerDelivery;
+        _executiveSummary = executiveSummary;
     }
 
     [HttpGet("catalogue")]
@@ -24,6 +26,10 @@ public sealed class ReportsController : TetaControllerBase
 
     [HttpGet("executive-dashboard")]
     public Task<ExecutiveDashboardDto> Executive([FromQuery] string? financialYear, CancellationToken ct) => _reports.ExecutiveDashboardAsync(financialYear, ct);
+
+    [HttpGet("executive-dashboard/export"), HasPermission(Permissions.ReportsExport)]
+    public async Task<IActionResult> ExportExecutive([FromQuery] string? financialYear, [FromQuery] string format = "pdf", CancellationToken ct = default) =>
+        ExportFile(await _executiveSummary.ExportAsync(financialYear, format, ct));
 
     [HttpGet("exceptions")]
     public Task<IReadOnlyList<ExceptionItemDto>> Exceptions([FromQuery] ReportFilter filter, CancellationToken ct) => _reports.ExceptionsAsync(filter, ct);
