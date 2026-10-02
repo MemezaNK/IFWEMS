@@ -23,6 +23,7 @@ import { KpiCardsComponent } from '../../shared/kpi-cards.component';
         <a mat-stroked-button routerLink="/reports/analytics"><mat-icon>map</mat-icon> Analytics &amp; map</a>
         <a mat-stroked-button routerLink="/reports/data-quality"><mat-icon>cleaning_services</mat-icon> Data quality</a>
         <a mat-stroked-button routerLink="/reports/learner-delivery"><mat-icon>school</mat-icon> Learner delivery</a>
+        <a mat-stroked-button routerLink="/reports/user-activity"><mat-icon>person</mat-icon> User activity</a>
         <button mat-stroked-button [matMenuTriggerFor]="execMenu"><mat-icon>summarize</mat-icon> Executive summary</button>
         <mat-menu #execMenu="matMenu">
           <button mat-menu-item (click)="exportExecutiveSummary('pdf')">PDF (charts &amp; KPIs)</button>

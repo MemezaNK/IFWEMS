@@ -77,6 +77,7 @@ export const routes: Routes = [
       { path: 'reports/board-packs', loadComponent: () => import('./features/reports/board-packs.component').then(m => m.BoardPacksComponent), ...perm(P.reportsBoard) },
       { path: 'reports/analytics', loadComponent: () => import('./features/reports/analytics.component').then(m => m.AnalyticsComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
       { path: 'reports/data-quality', loadComponent: () => import('./features/reports/data-quality.component').then(m => m.DataQualityComponent), ...perm(P.reportsRead, P.dataQualityManage) },
+      { path: 'reports/user-activity', loadComponent: () => import('./features/reports/user-activity-report.component').then(m => m.UserActivityReportComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
       { path: 'reports/run/:code', loadComponent: () => import('./features/reports/report-run.component').then(m => m.ReportRunComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
       { path: 'reports/learner-delivery/:projectId', loadComponent: () => import('./features/reports/learner-delivery-report.component').then(m => m.LearnerDeliveryReportComponent), ...perm(P.meRead) },
       { path: 'reports/learner-delivery', loadComponent: () => import('./features/reports/learner-delivery-report.component').then(m => m.LearnerDeliveryReportComponent), ...perm(P.meRead) },

@@ -16,7 +16,11 @@ import { entityLink } from '../common/links';
   imports: [KpiCardsComponent, StatusChipComponent, RouterLink, DatePipe, MatButtonModule, MatIconModule],
   template: `
     <div class="page">
-      <div class="page-header"><h1>Good day, {{ home()?.displayName }}</h1></div>
+      <div class="page-header">
+        <h1>Good day, {{ home()?.displayName }}</h1>
+        <span class="spacer"></span>
+        <button mat-stroked-button (click)="exportMyActivityReport()"><mat-icon>download</mat-icon> My activity report (PDF)</button>
+      </div>
       @if (home(); as h) {
         <teta-kpis [kpis]="h.kpis" />
         <div class="grid cols-2">
@@ -105,5 +109,9 @@ export class HomeComponent implements OnInit {
       return;
     }
     this.api.get('home').subscribe(h => this.home.set(h));
+  }
+
+  exportMyActivityReport(): void {
+    this.api.download('me/activity-report/export').subscribe(r => ApiService.saveBlob(r, 'my-activity-report.pdf'));
   }
 }
