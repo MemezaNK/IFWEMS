@@ -13,12 +13,15 @@ public sealed class ReportsController : TetaControllerBase
     private readonly IReportingService _reports;
     private readonly ILearnerDeliveryReportService _learnerDelivery;
     private readonly IExecutiveSummaryReportService _executiveSummary;
+    private readonly IUserActivityReportService _userActivityReport;
 
-    public ReportsController(IReportingService reports, ILearnerDeliveryReportService learnerDelivery, IExecutiveSummaryReportService executiveSummary)
+    public ReportsController(IReportingService reports, ILearnerDeliveryReportService learnerDelivery, IExecutiveSummaryReportService executiveSummary,
+        IUserActivityReportService userActivityReport)
     {
         _reports = reports;
         _learnerDelivery = learnerDelivery;
         _executiveSummary = executiveSummary;
+        _userActivityReport = userActivityReport;
     }
 
     [HttpGet("catalogue")]
@@ -30,6 +33,21 @@ public sealed class ReportsController : TetaControllerBase
     [HttpGet("executive-dashboard/export"), HasPermission(Permissions.ReportsExport)]
     public async Task<IActionResult> ExportExecutive([FromQuery] string? financialYear, [FromQuery] string format = "pdf", CancellationToken ct = default) =>
         ExportFile(await _executiveSummary.ExportAsync(financialYear, format, ct));
+
+    /// <summary>
+    /// User Activity Report (JSON): a specific user's stats via <paramref name="userId"/>, or the
+    /// organisation-wide summary across all active users when <paramref name="userId"/> is omitted.
+    /// Gated by the controller's Reports/Board/Portfolio read permissions (admin-level access).
+    /// </summary>
+    [HttpGet("user-activity")]
+    public Task<UserActivityReportDto> UserActivity([FromQuery] Guid? userId, [FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct) =>
+        _userActivityReport.GetAsync(userId, from, to, ct);
+
+    /// <summary>Client-ready PDF export of the User Activity Report (a specific user, or the organisation-wide summary).</summary>
+    [HttpGet("user-activity/export"), HasPermission(Permissions.ReportsExport)]
+    public async Task<IActionResult> ExportUserActivity([FromQuery] Guid? userId, [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] string format = "pdf", CancellationToken ct = default) =>
+        ExportFile(await _userActivityReport.ExportAsync(userId, from, to, format, ct));
 
     [HttpGet("exceptions")]
     public Task<IReadOnlyList<ExceptionItemDto>> Exceptions([FromQuery] ReportFilter filter, CancellationToken ct) => _reports.ExceptionsAsync(filter, ct);
@@ -50,6 +68,9 @@ public sealed class ReportsController : TetaControllerBase
 
     [HttpGet("board-packs/{id:guid}"), HasPermission(Permissions.ReportsBoard)]
     public Task<BoardPackDetailDto> BoardPack(Guid id, CancellationToken ct) => _reports.GetBoardPackAsync(id, ct);
+
+    [HttpGet("board-packs/{id:guid}/export"), HasPermission(Permissions.ReportsExport)]
+    public async Task<IActionResult> ExportBoardPack(Guid id, CancellationToken ct) => ExportFile(await _reports.ExportBoardPackAsync(id, ct));
 
     [HttpPost("board-packs"), HasPermission(Permissions.ReportsBoard)]
     public Task<BoardPackDto> GenerateBoardPack(GenerateBoardPackRequest request, CancellationToken ct) => _reports.GenerateBoardPackAsync(request, ct);

@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Text;
+using IFWEMS.Application.Common.Interfaces;
 using IFWEMS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,10 +20,60 @@ namespace IFWEMS.Api.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IfwemsDbContext _dbContext;
+    private readonly IUserActivityReportService _userActivityReportService;
 
-    public ReportsController(IfwemsDbContext dbContext)
+    public ReportsController(IfwemsDbContext dbContext, IUserActivityReportService userActivityReportService)
     {
         _dbContext = dbContext;
+        _userActivityReportService = userActivityReportService;
+    }
+
+    private Guid? CurrentUserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+    private bool IsAdmin => User.IsInRole("SystemAdministrator") || User.IsInRole("ComplianceOfficer");
+
+    /// <summary>
+    /// User Activity Report (JSON): the signed-in user's own stats, or (SystemAdministrator/
+    /// ComplianceOfficer only) another user's stats via <paramref name="userId"/>, or the
+    /// organisation-wide summary when <paramref name="userId"/> is omitted and <paramref name="all"/> is true.
+    /// </summary>
+    [HttpGet("user-activity")]
+    public async Task<IActionResult> UserActivity([FromQuery] Guid? userId, [FromQuery] bool all, [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        CancellationToken cancellationToken)
+    {
+        if ((all || (userId is { } requested && requested != CurrentUserId)) && !IsAdmin)
+        {
+            return Forbid();
+        }
+
+        var targetUserId = all ? null : userId ?? CurrentUserId;
+        if (targetUserId is null && !all)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await _userActivityReportService.GetAsync(targetUserId, from, to, cancellationToken));
+    }
+
+    /// <summary>Client-ready PDF export of the User Activity Report (own activity, or any user's / org-wide for admins).</summary>
+    [HttpGet("user-activity.pdf")]
+    public async Task<IActionResult> UserActivityPdf([FromQuery] Guid? userId, [FromQuery] bool all, [FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        CancellationToken cancellationToken)
+    {
+        if ((all || (userId is { } requested && requested != CurrentUserId)) && !IsAdmin)
+        {
+            return Forbid();
+        }
+
+        var targetUserId = all ? null : userId ?? CurrentUserId;
+        if (targetUserId is null && !all)
+        {
+            return Unauthorized();
+        }
+
+        var pdf = await _userActivityReportService.ExportPdfAsync(targetUserId, from, to, cancellationToken);
+        var fileName = targetUserId is null ? "user-activity-summary.pdf" : "user-activity-report.pdf";
+        return File(pdf, "application/pdf", fileName);
     }
 
     /// <summary>Case register: one row per case with status, amounts, and dates.</summary>

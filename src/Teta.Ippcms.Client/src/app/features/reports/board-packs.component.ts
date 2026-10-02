@@ -21,6 +21,7 @@ import { JsonViewerDialog } from './json-viewer-dialog.component';
       </div>
       <teta-data-table [columns]="columns" [rows]="rows()" [actions]="actions" (rowClick)="view($event)" emptyText="No board packs generated yet." exportName="board-packs" />
       <ng-template #actions let-row>
+        <button mat-icon-button (click)="downloadPdf(row, $event)" title="Download PDF"><mat-icon>picture_as_pdf</mat-icon></button>
         @if (row.status === 'Draft') { <button mat-icon-button (click)="approve(row, $event)" title="Approve"><mat-icon>check_circle</mat-icon></button> }
       </ng-template>
     </div>
@@ -58,6 +59,11 @@ export class BoardPacksComponent implements OnInit {
       this.snack.open('Board pack approved.', 'OK', { duration: 3000 });
       this.load();
     });
+  }
+
+  downloadPdf(row: any, e: Event): void {
+    e.stopPropagation();
+    this.api.download(`reports/board-packs/${row.id}/export`).subscribe(r => ApiService.saveBlob(r, `${row.number}-v${row.packVersion}.pdf`));
   }
 
   view(row: any): void {

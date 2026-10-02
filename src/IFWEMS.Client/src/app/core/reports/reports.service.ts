@@ -20,4 +20,19 @@ export class ReportsService {
   downloadContractsRegister(): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/contracts.csv`, { responseType: 'blob' });
   }
+
+  /** Current user's own activity report (what they've done / what they still need to do). */
+  downloadMyActivityReport(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/user-activity.pdf`, { responseType: 'blob' });
+  }
+
+  /** A specific user's activity report. SystemAdministrator/ComplianceOfficer only. */
+  downloadUserActivityReport(userId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/user-activity.pdf`, { responseType: 'blob', params: { userId } });
+  }
+
+  /** Organisation-wide activity summary across all active users. SystemAdministrator/ComplianceOfficer only. */
+  downloadAllUsersActivityReport(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/user-activity.pdf`, { responseType: 'blob', params: { all: true } });
+  }
 }

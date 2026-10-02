@@ -5,6 +5,7 @@ using IFWEMS.Infrastructure.Compliance;
 using IFWEMS.Infrastructure.Notifications;
 using IFWEMS.Infrastructure.Persistence;
 using IFWEMS.Infrastructure.Persistence.Interceptors;
+using IFWEMS.Infrastructure.Reporting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ICaseService, CaseService>();
         services.AddScoped<IComplianceRuleEngine, ComplianceRuleEngine>();
         services.AddScoped<IEmergencyOverrideService, EmergencyOverrideService>();
+        services.AddScoped<IUserActivityReportService, UserActivityReportService>();
 
         return services;
     }

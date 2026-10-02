@@ -27,5 +27,56 @@
         </mat-card-content>
       </mat-card>
     }
+
+    <mat-card class="section-card register-card">
+      <mat-card-content>
+        <mat-icon class="register-icon">assessment</mat-icon>
+        <h2>My Activity Report</h2>
+        <p>A client-ready PDF summary of what you've completed and what's still outstanding.</p>
+        <button mat-stroked-button color="primary" [disabled]="downloadingKey() === 'my-activity'" (click)="downloadMyActivityReport()">
+          @if (downloadingKey() === 'my-activity') {
+            <span>Preparing&hellip;</span>
+          } @else {
+            <mat-icon>download</mat-icon> Download PDF
+          }
+        </button>
+      </mat-card-content>
+    </mat-card>
+
+    @if (isAdmin) {
+      <mat-card class="section-card register-card">
+        <mat-card-content>
+          <mat-icon class="register-icon">groups</mat-icon>
+          <h2>All Users - Activity Summary</h2>
+          <p>Organisation-wide activity report across all active users, with charts and per-user breakdown.</p>
+          <button mat-stroked-button color="primary" [disabled]="downloadingKey() === 'all-activity'" (click)="downloadAllUsersActivityReport()">
+            @if (downloadingKey() === 'all-activity') {
+              <span>Preparing&hellip;</span>
+            } @else {
+              <mat-icon>download</mat-icon> Download PDF
+            }
+          </button>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="section-card register-card">
+        <mat-card-content>
+          <mat-icon class="register-icon">person_search</mat-icon>
+          <h2>Another User's Activity Report</h2>
+          <p>Enter a user ID to generate that user's activity report.</p>
+          <mat-form-field appearance="outline" class="user-id-field">
+            <mat-label>User ID</mat-label>
+            <input matInput [ngModel]="otherUserId()" (ngModelChange)="otherUserId.set($event)" placeholder="Guid" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" [disabled]="downloadingKey() === 'other-activity'" (click)="downloadOtherUserActivityReport()">
+            @if (downloadingKey() === 'other-activity') {
+              <span>Preparing&hellip;</span>
+            } @else {
+              <mat-icon>download</mat-icon> Download PDF
+            }
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
   </div>
 </div>

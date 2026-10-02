@@ -36,6 +36,15 @@ public sealed record BoardPackDto(Guid Id, string Number, string Period, int Pac
 public sealed record BoardPackDetailDto(BoardPackDto Pack, JsonElement Dataset);
 public sealed record GenerateBoardPackRequest(string Period, string Title, string? FinancialYear);
 
+/// <summary>A frozen columnar table (as produced by <see cref="ReportTable"/>) stored inside a Board Pack's dataset JSON.</summary>
+public sealed record BoardPackTableDto(IReadOnlyList<string> Columns, IReadOnlyList<string[]> Rows);
+
+/// <summary>Shape of <see cref="BoardReportPack.DatasetJson"/>, matching the anonymous object built in <see cref="ReportingService.GenerateBoardPackAsync"/>.</summary>
+public sealed record BoardPackDatasetDto(string Period, string FinancialYear, DateTime GeneratedAtUtc, string? GeneratedBy,
+    IReadOnlyList<KpiDto> Kpis, IReadOnlyList<HealthBucket> Health, IReadOnlyList<ProgrammeRollupDto> Programmes,
+    IReadOnlyList<IndicatorPerformanceDto> AppPerformance, IReadOnlyList<ExceptionItemDto> Exceptions,
+    BoardPackTableDto PortfolioHealth, BoardPackTableDto EvidenceVerification);
+
 public sealed record ReportScheduleDto(Guid Id, string ReportCode, string ReportName, string Format, string Frequency, string Recipients, bool IsEnabled,
     Guid OwnerUserId, DateTime? LastRunAtUtc, DateTime? NextRunAtUtc, string? LastRunStatus, long Version);
 public sealed record SaveScheduleRequest(string ReportCode, string Format, string Frequency, string Recipients, bool IsEnabled, string? FinancialYear,
@@ -65,6 +74,7 @@ public interface IReportingService
     Task<BoardPackDetailDto> GetBoardPackAsync(Guid id, CancellationToken ct);
     Task<BoardPackDto> GenerateBoardPackAsync(GenerateBoardPackRequest request, CancellationToken ct);
     Task<BoardPackDto> ApproveBoardPackAsync(Guid id, CancellationToken ct);
+    Task<ExportedFile> ExportBoardPackAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<ReportScheduleDto>> ListSchedulesAsync(CancellationToken ct);
     Task<ReportScheduleDto> SaveScheduleAsync(Guid? id, SaveScheduleRequest request, CancellationToken ct);
@@ -383,6 +393,38 @@ public sealed class ReportingService : IReportingService
         var pack = await _db.BoardReportPacks.AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("Board pack", id);
         using var doc = JsonDocument.Parse(pack.DatasetJson);
         return new BoardPackDetailDto(ToDto(pack), doc.RootElement.Clone());
+    }
+
+    private static readonly JsonSerializerOptions BoardPackDatasetOptions = new() { PropertyNameCaseInsensitive = true };
+
+    /// <summary>
+    /// Renders the frozen pack dataset as a board/client-ready PDF (charts, KPI cards and detail tables), reusing the
+    /// same builder as the live Executive Summary export so both documents look and read consistently (FR-REP-003).
+    /// </summary>
+    public async Task<ExportedFile> ExportBoardPackAsync(Guid id, CancellationToken ct)
+    {
+        var pack = await _db.BoardReportPacks.AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("Board pack", id);
+        var dataset = JsonSerializer.Deserialize<BoardPackDatasetDto>(pack.DatasetJson, BoardPackDatasetOptions)
+            ?? throw new NotFoundException("Board pack dataset", id);
+        var dashboard = new ExecutiveDashboardDto(dataset.FinancialYear, dataset.Kpis, dataset.Health, dataset.Programmes, dataset.AppPerformance,
+            dataset.Exceptions);
+
+        var title = $"TETA - Board Pack {pack.Number} (v{pack.PackVersion})";
+        var subtitle = $"{pack.Title}  |  Period {pack.Period}  |  Status {pack.Status}  |  Generated {pack.GeneratedAtUtc:yyyy-MM-dd HH:mm} UTC by {pack.GeneratedBy}" +
+            (pack.ApprovedAtUtc is { } approvedAt ? $"  |  Approved {approvedAt:yyyy-MM-dd HH:mm} UTC by {pack.ApprovedBy}" : string.Empty);
+
+        var extraTables = new List<(string Heading, string Subheading, string[] Columns, IReadOnlyList<object?[]> Rows)>
+        {
+            ("Portfolio Health Detail", "Frozen at the time this pack was generated", dataset.PortfolioHealth.Columns.ToArray(),
+                dataset.PortfolioHealth.Rows.Select(r => r.Cast<object?>().ToArray()).ToList()),
+            ("Evidence Verification Detail", "Frozen at the time this pack was generated", dataset.EvidenceVerification.Columns.ToArray(),
+                dataset.EvidenceVerification.Rows.Select(r => r.Cast<object?>().ToArray()).ToList())
+        };
+
+        var bytes = ExecutiveSummaryReportService.BuildPdf(dashboard, pack.GeneratedAtUtc, title, subtitle, extraTables);
+        _audit.Write("Reporting", "BoardPack", pack.Number, "Export", new { format = "pdf", pack.Number, pack.PackVersion });
+        await _db.SaveChangesAsync(ct);
+        return new ExportedFile(bytes, "application/pdf", $"{pack.Number}-v{pack.PackVersion}.pdf");
     }
 
     /// <summary>Freezes the executive dataset for a reporting period as a new pack version; earlier versions are retained.</summary>
