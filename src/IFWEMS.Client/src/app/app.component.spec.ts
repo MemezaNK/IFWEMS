@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
@@ -6,7 +8,7 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()]
     }).compileComponents();
   });
 
@@ -16,9 +18,9 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have the 'IFWEMS.Client' title`, () => {
+  it(`should have the 'IFWEMS' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('IFWEMS.Client');
+    expect(app.title).toEqual('IFWEMS');
   });
 });
