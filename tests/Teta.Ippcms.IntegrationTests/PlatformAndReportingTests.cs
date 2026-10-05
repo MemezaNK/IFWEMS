@@ -236,6 +236,9 @@ public sealed class PlatformAndReportingTests : IClassFixture<ScenarioFixture>
         var dashboard = await Get<ExecutiveDashboardDto>(exec, "/api/v1/reports/executive-dashboard?financialYear=2026%2F27");
         Assert.Contains(dashboard.Kpis, k => k.Code == "ACTIVE_PROJECTS");
         Assert.All(dashboard.Kpis, k => Assert.StartsWith("/", k.DrillLink));
+        var breakdown = await Get<ExecutiveFinancialBreakdownDto>(exec, "/api/v1/reports/executive-dashboard/financial-breakdown?financialYear=2026%2F27");
+        Assert.Equal(dashboard.Kpis.Single(k => k.Code == "BUDGET").Value, breakdown.TotalRevisedBudget);
+        Assert.Equal(dashboard.Kpis.Single(k => k.Code == "COMMITTED").Value, breakdown.TotalCommitted);
         Assert.NotNull(await Get<List<ExceptionItemDto>>(exec, "/api/v1/reports/exceptions"));
         var analytics = await Get<ReportTable>(exec, "/api/v1/reports/analytics");
         Assert.Contains(analytics.Rows, r => Equals(r[1]?.ToString(), "Reporting project"));

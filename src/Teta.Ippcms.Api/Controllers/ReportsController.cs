@@ -30,7 +30,11 @@ public sealed class ReportsController : TetaControllerBase
     [HttpGet("executive-dashboard")]
     public Task<ExecutiveDashboardDto> Executive([FromQuery] string? financialYear, CancellationToken ct) => _reports.ExecutiveDashboardAsync(financialYear, ct);
 
-    [HttpGet("executive-dashboard/export"), HasPermission(Permissions.ReportsExport)]
+    [HttpGet("executive-dashboard/financial-breakdown")]
+    public Task<ExecutiveFinancialBreakdownDto> ExecutiveFinancialBreakdown([FromQuery] string? financialYear, CancellationToken ct) =>
+        _reports.ExecutiveFinancialBreakdownAsync(financialYear, ct);
+
+    [HttpGet("executive-dashboard/export"),HasPermission(Permissions.ReportsExport)]
     public async Task<IActionResult> ExportExecutive([FromQuery] string? financialYear, [FromQuery] string format = "pdf", CancellationToken ct = default) =>
         ExportFile(await _executiveSummary.ExportAsync(financialYear, format, ct));
 

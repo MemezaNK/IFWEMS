@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/auth.service';
@@ -8,6 +9,7 @@ import { ApiService } from '../../core/api.service';
 import { P } from '../../core/models';
 import { Column, DataTableComponent } from '../../shared/data-table.component';
 import { KpiCardsComponent } from '../../shared/kpi-cards.component';
+import { FinancialBreakdownDialog } from './financial-breakdown-dialog.component';
 
 /** Executive dashboard and the full standard report catalogue (RPT-001..015, SRS §5.10/§11). */
 @Component({
@@ -31,7 +33,7 @@ import { KpiCardsComponent } from '../../shared/kpi-cards.component';
         </mat-menu>
       </div>
       @if (dashboard(); as d) {
-        <teta-kpis [kpis]="d.kpis" />
+        <teta-kpis [kpis]="d.kpis" [selectableCodes]="['BUDGET', 'COMMITTED']" (kpiSelect)="showBreakdown($event.code, d.financialYear)" />
         <div class="grid cols-2" style="margin-top: 16px">
           <div class="card"><h2 style="margin-top: 0">Health</h2>
             <teta-data-table [columns]="healthColumns" [rows]="d.health" [filterable]="false" [paginate]="false" [exportable]="false" /></div>
@@ -52,6 +54,7 @@ export class ReportsCatalogueComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
   readonly dashboard = signal<any | null>(null);
   readonly catalogue = signal<any[]>([]);
 
@@ -79,6 +82,13 @@ export class ReportsCatalogueComponent implements OnInit {
 
   run(row: any): void {
     this.router.navigate(['/reports/run', row.code]);
+  }
+
+  showBreakdown(code: string | undefined, financialYear: string): void {
+    if (code !== 'BUDGET' && code !== 'COMMITTED') return;
+    this.api.get('reports/executive-dashboard/financial-breakdown', { financialYear }).subscribe((breakdown: any) => {
+      this.dialog.open(FinancialBreakdownDialog, { data: { metric: code, breakdown }, width: '760px', maxWidth: '96vw' });
+    });
   }
 
   exportExecutiveSummary(format: string): void {
