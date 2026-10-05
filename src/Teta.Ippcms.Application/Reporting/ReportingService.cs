@@ -31,6 +31,11 @@ public sealed record ExceptionItemDto(string Category, string Reference, string 
 public sealed record ExecutiveDashboardDto(string FinancialYear, IReadOnlyList<KpiDto> Kpis, IReadOnlyList<HealthBucket> Health,
     IReadOnlyList<ProgrammeRollupDto> Programmes, IReadOnlyList<IndicatorPerformanceDto> AppPerformance, IReadOnlyList<ExceptionItemDto> TopExceptions);
 
+/// <summary>Per-project revised budget and open commitments behind the Revised budget / Committed tiles on the executive dashboard.</summary>
+public sealed record ProjectBudgetCommitmentRow(Guid ProjectId, string Reference, string Name, decimal RevisedBudget, decimal Committed);
+public sealed record ExecutiveFinancialBreakdownDto(string FinancialYear, IReadOnlyList<ProjectBudgetCommitmentRow> Projects, decimal TotalRevisedBudget,
+    decimal TotalCommitted);
+
 public sealed record BoardPackDto(Guid Id, string Number, string Period, int PackVersion, string Title, string Status, DateTime GeneratedAtUtc,
     string? GeneratedBy, DateTime? ApprovedAtUtc, string? ApprovedBy);
 public sealed record BoardPackDetailDto(BoardPackDto Pack, JsonElement Dataset);
@@ -67,6 +72,7 @@ public interface IReportingService
     Task<ExportedFile> ExportAsync(string code, ReportFilter filter, string format, CancellationToken ct);
 
     Task<ExecutiveDashboardDto> ExecutiveDashboardAsync(string? financialYear, CancellationToken ct);
+    Task<ExecutiveFinancialBreakdownDto> ExecutiveFinancialBreakdownAsync(string? financialYear, CancellationToken ct);
     Task<IReadOnlyList<ExceptionItemDto>> ExceptionsAsync(ReportFilter filter, CancellationToken ct);
     Task<ExportedFile> ExportExceptionsAsync(ReportFilter filter, string format, CancellationToken ct);
 
@@ -243,6 +249,31 @@ public sealed class ReportingService : IReportingService
         var top = exceptions.OrderBy(e => SeverityRank(e.Severity)).ThenByDescending(e => e.DaysOverdue ?? 0).Take(15).ToList();
 
         return new ExecutiveDashboardDto(fy, kpis, health, programmes, performance, top);
+    }
+
+    /// <summary>Breakdown per project of the Revised budget and Committed dashboard tiles; uses the same scope, financial year and filters as the tiles so the totals reconcile.</summary>
+    public async Task<ExecutiveFinancialBreakdownDto> ExecutiveFinancialBreakdownAsync(string? financialYear, CancellationToken ct)
+    {
+        var fy = financialYear ?? await _settings.GetAsync(SettingKeys.CurrentFinancialYear, ct);
+        Validate(new ReportFilter(fy));
+        var scope = await _scope.GetAsync(ct);
+        var (effective, projects) = await _builder.ResolveAsync(new ReportFilter(), scope, ct);
+
+        // Summed client-side, like the dashboard tiles (SQLite cannot aggregate decimals).
+        var budget = await _db.BudgetLines.AsNoTracking().InScope(effective, b => b.ProjectId).Where(b => b.FinancialYear == fy)
+            .Select(b => new { b.ProjectId, Amount = b.RevisedAmount }).ToListAsync(ct);
+        var committed = await _db.Commitments.AsNoTracking().InScope(effective, c => c.ProjectId).Where(c => c.FinancialYear == fy && !c.IsReleased)
+            .Select(c => new { c.ProjectId, c.Amount }).ToListAsync(ct);
+
+        var budgetByProject = budget.GroupBy(b => b.ProjectId).ToDictionary(g => g.Key, g => g.Sum(b => b.Amount));
+        var committedByProject = committed.GroupBy(c => c.ProjectId).ToDictionary(g => g.Key, g => g.Sum(c => c.Amount));
+        var rows = budgetByProject.Keys.Union(committedByProject.Keys)
+            .Select(id => projects.TryGetValue(id, out var p)
+                ? new ProjectBudgetCommitmentRow(id, p.Reference, p.Project.Name, budgetByProject.GetValueOrDefault(id), committedByProject.GetValueOrDefault(id))
+                : new ProjectBudgetCommitmentRow(id, string.Empty, "(Project not in view)", budgetByProject.GetValueOrDefault(id), committedByProject.GetValueOrDefault(id)))
+            .OrderBy(r => r.Reference).ToList();
+
+        return new ExecutiveFinancialBreakdownDto(fy, rows, rows.Sum(r => r.RevisedBudget), rows.Sum(r => r.Committed));
     }
 
     private static int SeverityRank(string s) => s switch { "Critical" => 0, "High" => 1, "Medium" => 2, _ => 3 };

@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Kpi } from '../core/models';
@@ -32,7 +32,8 @@ const ICON_RULES: Array<[RegExp, string]> = [
   template: `
     <div class="kpis">
       @for (k of kpis; track k.label) {
-        <a class="kpi" [class]="'kpi ' + k.status" [routerLink]="path(k)" [queryParams]="query(k)">
+        <a class="kpi" [class]="'kpi ' + k.status" [routerLink]="selectable(k) ? null : path(k)" [queryParams]="query(k)"
+           [style.cursor]="selectable(k) ? 'pointer' : null" (click)="select(k)">
           <div class="kpi-icon"><mat-icon>{{ icon(k) }}</mat-icon></div>
           <div class="kpi-body">
             <div class="value">
@@ -47,6 +48,17 @@ const ICON_RULES: Array<[RegExp, string]> = [
 })
 export class KpiCardsComponent {
   @Input() kpis: Kpi[] = [];
+  /** KPI codes that raise <c>kpiSelect</c> on click instead of navigating to their drill link. */
+  @Input() selectableCodes: string[] = [];
+  @Output() kpiSelect = new EventEmitter<Kpi>();
+
+  selectable(k: Kpi): boolean {
+    return !!k.code && this.selectableCodes.includes(k.code);
+  }
+
+  select(k: Kpi): void {
+    if (this.selectable(k)) this.kpiSelect.emit(k);
+  }
 
   private link(k: Kpi): string {
     return k.drillLink ?? k.link ?? '/';
