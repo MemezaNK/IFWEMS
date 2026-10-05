@@ -36,7 +36,7 @@ export const NAV: NavGroup[] = [
     { label: 'Invoices', icon: 'receipt_long', link: '/finance/invoices', permissions: [P.financeRead] },
     { label: 'ERP interface', icon: 'sync_alt', link: '/finance/erp', permissions: [P.financeErp] }
   ]},
-  { title: 'Monitoring & assurance', items: [
+  { title: 'Monitoring & execution', items: [
     { label: 'M&E dashboard', icon: 'monitor_heart', link: '/me', permissions: [P.meRead] },
     { label: 'Monitoring visits', icon: 'place', link: '/me/visits', permissions: [P.meRead] },
     { label: 'Findings & actions', icon: 'task_alt', link: '/me/actions' },
