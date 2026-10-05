@@ -170,7 +170,7 @@ public sealed class WorkflowService : IWorkflowService
         var (actingForUserId, actingForName, actingRoles) = await ResolveActingCapacityAsync(userId, task, cancellationToken);
 
         // SoD: initiator may not approve their own transaction; one person may not approve two steps.
-        if (instance.StartedByUserId == userId || instance.StartedByUserId == actingForUserId)
+        if (instance.StartedByUserId is { } starterId && (starterId == userId || starterId == actingForUserId))
             throw new DomainException("Segregation of duties: you cannot approve a transaction you submitted.", "BR-008");
         if (instance.Tasks.Any(t => t.Id != task.Id && t.Decision == TaskDecision.Approved && (t.DecidedByUserId == userId || t.OnBehalfOfUserId == userId)))
             throw new DomainException("Segregation of duties: you already approved an earlier step of this transaction.", "BR-008");
