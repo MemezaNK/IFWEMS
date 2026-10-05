@@ -72,6 +72,9 @@ export const routes: Routes = [
       { path: 'assurance/risks', loadComponent: () => import('./features/assurance/risks-list.component').then(m => m.RisksListComponent), ...perm(P.riskRead, P.riskManage) },
       { path: 'assurance/risks/:id', loadComponent: () => import('./features/assurance/risk-detail.component').then(m => m.RiskDetailComponent), ...perm(P.riskRead, P.riskManage) },
 
+      // Document processing (VeriTrailX shown inside TETA)
+      { path: 'docproc', loadComponent: () => import('./features/docproc/docproc.component').then(m => m.DocprocComponent), ...perm(P.documentsRead) },
+
       // Reporting
       { path: 'reports/exceptions', loadComponent: () => import('./features/reports/exceptions-report.component').then(m => m.ExceptionsReportComponent), ...perm(P.reportsRead, P.reportsBoard, P.portfolioRead) },
       { path: 'reports/board-packs', loadComponent: () => import('./features/reports/board-packs.component').then(m => m.BoardPacksComponent), ...perm(P.reportsBoard) },

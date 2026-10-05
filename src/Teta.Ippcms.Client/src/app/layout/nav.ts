@@ -44,7 +44,8 @@ export const NAV: NavGroup[] = [
     { label: 'Risk & assurance', icon: 'shield', link: '/assurance', permissions: [P.riskRead, P.riskManage] },
     { label: 'Risk register', icon: 'warning', link: '/assurance/risks', permissions: [P.riskRead, P.riskManage] },
     { label: 'Compliance', icon: 'verified_user', link: '/assurance/compliance', permissions: [P.riskRead, P.riskManage] },
-    { label: 'Audit findings', icon: 'policy', link: '/assurance/audit-findings', permissions: [P.riskRead, P.riskManage] }
+    { label: 'Audit findings', icon: 'policy', link: '/assurance/audit-findings', permissions: [P.riskRead, P.riskManage] },
+    { label: 'Document processing', icon: 'document_scanner', link: '/docproc', permissions: [P.documentsRead] }
   ]},
   { title: 'Reporting', items: [
     { label: 'Reports', icon: 'summarize', link: '/reports', permissions: [P.reportsRead, P.reportsBoard, P.portfolioRead] },

@@ -22,6 +22,7 @@ namespace Teta.Ippcms.IntegrationTests;
 public sealed class TetaApiFactory : WebApplicationFactory<Program>
 {
     public const string Password = "Test!Passw0rd#2026";
+    public const string DocProcSecret = "integration-test-docproc-secret-0123456789ab";
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     private readonly SqliteConnection _connection;
@@ -54,6 +55,9 @@ public sealed class TetaApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Security:AuditSealKey", "integration-test-audit-seal-key-0123456789");
         builder.UseSetting("Security:FieldEncryptionKey", "integration-test-field-encryption-key-0123");
         builder.UseSetting("Integration:ErpApiKey", "integration-test-erp-api-key-0123456789abcdef");
+        builder.UseSetting("DocProc:Url", "http://docproc.test:8000/");
+        builder.UseSetting("DocProc:HostId", "teta");
+        builder.UseSetting("DocProc:EmbedSecret", DocProcSecret);
         builder.UseSetting("HealthChecks:SqlServer", "false");
         builder.UseSetting("Jobs:Enabled", "false");
         builder.UseSetting("Seed:Enabled", "true");
