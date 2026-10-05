@@ -1175,14 +1175,14 @@ public sealed class TetaSeeder
         // to act on, and a few notifications so inboxes aren't empty on first login.
         // ================================================================================
         var definitions = await _db.WorkflowDefinitions.Include(d => d.Steps).ToDictionaryAsync(d => d.Code, ct);
-        void AddPendingApproval(string workflowCode, string entityType, Guid entityId, string title, decimal? value, Guid? projectId, int stepOrder, string assignedRole, DateTime startedAtUtc)
+        void AddPendingApproval(string workflowCode, string entityType, Guid entityId, string reference, string title, decimal? value, Guid? projectId, int stepOrder, string assignedRole, DateTime startedAtUtc)
         {
             if (!definitions.TryGetValue(workflowCode, out var def)) return;
             var step = def.Steps.FirstOrDefault(s => s.StepOrder == stepOrder);
             if (step is null) return;
             var instance = new WorkflowInstance
             {
-                DefinitionId = def.Id, DefinitionCode = def.Code, DefinitionVersion = def.DefinitionVersion, EntityType = entityType, EntityId = entityId, EntityReference = title,
+                DefinitionId = def.Id, DefinitionCode = def.Code, DefinitionVersion = def.DefinitionVersion, EntityType = entityType, EntityId = entityId, EntityReference = reference, Title = title,
                 TransactionValue = value, ProjectId = projectId, CurrentStepOrder = stepOrder, State = WorkflowState.InProgress, StartedAtUtc = startedAtUtc, StartedBy = "seed"
             };
             _db.WorkflowInstances.Add(instance);
@@ -1192,10 +1192,10 @@ public sealed class TetaSeeder
                 CreatedAtUtc = startedAtUtc, DueAtUtc = startedAtUtc.AddHours(step.SlaHours), Decision = TaskDecision.Pending
             });
         }
-        AddPendingApproval("BUSINESS_CASE_APPROVAL", "BusinessCase", project1.Id, project1.Name, 9_800_000m, project1.Id, 10, Roles.HeadPmo, _clock.UtcNow.AddDays(-3));
-        AddPendingApproval("PROCUREMENT_ADJUDICATION", "Procurement", procB.Id, procB.Title, procB.EstimatedValue, procB.ProjectId, 20, Roles.Cfo, _clock.UtcNow.AddDays(-2));
-        AddPendingApproval("CHANGE_REQUEST", "ChangeRequest", changeRequest4.Id, changeRequest4.Title, changeRequest4.CostImpact, changeRequest4.ProjectId, 20, Roles.Cfo, _clock.UtcNow.AddDays(-1));
-        AddPendingApproval("INVOICE_CERTIFICATION", "Invoice", invoice2.Id, invoice2.Number, invoice2.Amount, invoice2.ProjectId, 10, Roles.ProjectManager, _clock.UtcNow.AddDays(-1));
+        AddPendingApproval("BUSINESS_CASE_APPROVAL", "BusinessCase", project1.Id, project1.DraftReference, project1.Name, 9_800_000m, project1.Id, 10, Roles.HeadPmo, _clock.UtcNow.AddDays(-3));
+        AddPendingApproval("PROCUREMENT_ADJUDICATION", "Procurement", procB.Id, procB.Number, procB.Title, procB.EstimatedValue, procB.ProjectId, 20, Roles.Cfo, _clock.UtcNow.AddDays(-2));
+        AddPendingApproval("CHANGE_REQUEST", "ChangeRequest", changeRequest4.Id, changeRequest4.Number, changeRequest4.Title, changeRequest4.CostImpact, changeRequest4.ProjectId, 20, Roles.Cfo, _clock.UtcNow.AddDays(-1));
+        AddPendingApproval("INVOICE_CERTIFICATION", "Invoice", invoice2.Id, invoice2.Number, $"Invoice {invoice2.SupplierInvoiceNumber}", invoice2.Amount, invoice2.ProjectId, 10, Roles.ProjectManager, _clock.UtcNow.AddDays(-1));
 
         if (existingUsers.TryGetValue("teta.pmo", out var pmoUser))
             _db.Notifications.Add(new Notification { UserId = pmoUser.Id, Title = "Business case awaiting your review", Message = $"{project1.Name} is awaiting PMO review.", Category = "Approval", CreatedAtUtc = _clock.UtcNow.AddDays(-3), Link = "/projects" });
