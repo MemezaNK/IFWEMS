@@ -20,6 +20,9 @@ import { openForm } from '../../shared/form-dialog.component';
         <h1>Data quality</h1>
         @if (canManage) { <button mat-flat-button color="primary" (click)="scan()"><mat-icon>search</mat-icon> Run scan</button> }
       </div>
+      <p class="small muted">This report shows records the system has flagged as incomplete, inconsistent or out of date, together with ERP interface errors and unbalanced
+        reconciliation batches. Each issue has an owner who investigates it and resolves, closes or ignores it with a note, so reports and decisions rest on reliable data.
+        @if (canManage) { Use "Run scan" to check for new issues. }</p>
       @if (dashboard(); as d) {
         <p class="small muted">Open: {{ d.open }} · Resolved (30 days): {{ d.resolvedLast30Days }} · Interface errors: {{ d.interfaceErrors }} · Unbalanced batches: {{ d.unbalancedBatches }}</p>
       }
