@@ -7,9 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { P } from '../core/models';
+import { Option, ReferenceService } from '../core/reference.service';
 import { Column, DataTableComponent } from './data-table.component';
 import { openForm } from './form-dialog.component';
 
@@ -47,8 +49,11 @@ export class DocumentsPanelComponent implements OnChanges {
   @Input({ required: true }) parentId!: string;
   @Input() evidenceMode = false;
   @Input() documentType = 'Supporting document';
+  /** Evidence types to offer first in the upload dialog (evidence mode), e.g. the required types still missing. */
+  @Input() suggestedEvidenceTypes: string[] = [];
 
   private readonly api = inject(ApiService);
+  private readonly refs = inject(ReferenceService);
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
   private readonly snack = inject(MatSnackBar);
@@ -85,16 +90,20 @@ export class DocumentsPanelComponent implements OnChanges {
   async upload(files: FileList | null): Promise<void> {
     const file = files?.[0];
     if (!file) return;
+    const evidenceTypes = this.evidenceMode ? await this.evidenceTypeOptions() : [];
     const meta = await openForm(this.dialog, {
       title: `Upload ${file.name}`,
       fields: [
-        { key: 'documentType', label: this.evidenceMode ? 'Evidence type' : 'Document type', required: true },
+        this.evidenceMode
+          ? { key: 'documentType', label: 'Evidence type', type: 'select', required: true, options: evidenceTypes }
+          : { key: 'documentType', label: 'Document type', required: true },
         { key: 'title', label: 'Title' },
         { key: 'classification', label: 'Classification', type: 'select', required: true,
           options: ['Public', 'Internal', 'Confidential', 'Restricted'].map(v => ({ value: v, label: v })) },
         { key: 'expiryDate', label: 'Expiry date', type: 'date' }
       ],
-      value: { documentType: this.documentType, classification: 'Internal', title: file.name },
+      value: { documentType: this.evidenceMode ? (this.suggestedEvidenceTypes[0] ?? this.documentType) : this.documentType,
+        classification: 'Internal', title: file.name },
       submitLabel: 'Upload'
     }, '560px');
     if (!meta) return;
@@ -111,6 +120,13 @@ export class DocumentsPanelComponent implements OnChanges {
       this.snack.open('Uploaded and scanned.', 'OK', { duration: 3000 });
       this.load();
     });
+  }
+
+  /** Suggested (e.g. still-missing required) types first, then the EvidenceType reference list, then the generic default. */
+  private async evidenceTypeOptions(): Promise<Option[]> {
+    const reference = await firstValueFrom(this.refs.category('EvidenceType'));
+    const names = [...new Set([...this.suggestedEvidenceTypes, ...reference.map(o => String(o.value)), this.documentType])];
+    return names.map(n => ({ value: n, label: n }));
   }
 
   download(row: any): void {
