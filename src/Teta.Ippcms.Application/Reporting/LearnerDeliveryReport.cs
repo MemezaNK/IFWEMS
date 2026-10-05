@@ -172,7 +172,7 @@ public sealed class LearnerDeliveryReportService : ILearnerDeliveryReportService
         var commitments = await _db.Commitments.AsNoTracking().Where(c => c.ProjectId == projectId && !c.IsReleased).ToListAsync(ct);
         var expenditures = await _db.Expenditures.AsNoTracking().Where(e => e.ProjectId == projectId).ToListAsync(ct);
 
-        var risks = await _db.Risks.AsNoTracking().Where(r => r.ProjectId == projectId && r.IsOpen).ToListAsync(ct);
+        var risks = await _db.Risks.AsNoTracking().Where(r => r.ProjectId == projectId && (r.Status == RiskStatus.Open || r.Status == RiskStatus.Treating)).ToListAsync(ct);
         var riskIds = risks.Select(r => r.Id).ToList();
         var riskTreatments = riskIds.Count == 0
             ? new List<RiskTreatment>()

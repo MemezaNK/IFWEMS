@@ -22,6 +22,9 @@ const LABELS = { project: 'Workspace', project_group: 'Workspace group' };
 /** A token fetched less than this long ago is still fresh enough to hand over as it is. */
 const FRESH_TOKEN_MS = 60 * 1000;
 
+/** The frame says "ready" within moments; if it never does, it was blocked or the server cannot be reached. */
+const FRAME_REPLY_MS = 15 * 1000;
+
 /**
  * Document processing: VeriTrailX shown inside TETA. It has no login of its own here. This page gets a signed token for the
  * signed-in person from the TETA API and passes it to the frame with postMessage; the frame asks again by itself before its
@@ -67,6 +70,7 @@ export class DocprocComponent implements OnInit, OnDestroy {
 
   private origin = '';
   private first: { value: EmbedToken; at: number } | null = null;
+  private replyTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly listener = (event: MessageEvent) => this.onMessage(event);
 
   ngOnInit(): void {
@@ -76,6 +80,7 @@ export class DocprocComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     window.removeEventListener('message', this.listener);
+    clearTimeout(this.replyTimer);
   }
 
   start(): void {
@@ -87,6 +92,14 @@ export class DocprocComponent implements OnInit, OnDestroy {
         this.first = { value, at: Date.now() };
         this.origin = new URL(value.baseUrl).origin;
         this.frameUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.frameAddress(this.origin)));
+        clearTimeout(this.replyTimer);
+        this.replyTimer = setTimeout(() => this.zone.run(() => {
+          if (!this.loading()) return;
+          this.loading.set(false);
+          this.frameUrl.set(null);
+          this.error.set('Document processing did not respond. It may not be set up for TETA on the server yet, ' +
+            'or the server could not be reached. Please ask an administrator to check the document processing settings.');
+        }), FRAME_REPLY_MS);
       },
       error: (error: HttpErrorResponse) => this.fail(error)
     });
@@ -108,6 +121,7 @@ export class DocprocComponent implements OnInit, OnDestroy {
     if (!data || typeof data.type !== 'string') return;
     switch (data.type) {
       case 'docproc:ready': // also after every reload of the frame
+        clearTimeout(this.replyTimer);
         this.sendToken('init');
         break;
       case 'docproc:token-request': // the frame's session is about to run out
