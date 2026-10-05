@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { P } from '../../core/models';
@@ -73,23 +74,25 @@ export class ChangeRequestsRegisterComponent implements OnInit {
     this.api.get<any[]>('change-requests', { projectId: this.projectId }).subscribe(r => this.rows.set(r));
   }
 
-  private fields(): Field[] {
+  private fields(projectId: string): Field[] {
     return [
       { key: 'type', label: 'Change type', type: 'select', required: true, options: ['Scope', 'Cost', 'Schedule', 'Benefit'].map(t => ({ value: t, label: t })) },
       { key: 'title', label: 'Title', required: true, wide: true }, { key: 'description', label: 'Description', type: 'textarea', required: true },
       { key: 'justification', label: 'Justification', type: 'textarea', required: true },
       { key: 'costImpact', label: 'Cost impact (R)', type: 'number', required: true }, { key: 'scheduleImpactDays', label: 'Schedule impact (days)', type: 'number', required: true },
       { key: 'proposedEndDate', label: 'Proposed end date', type: 'date' }, { key: 'benefitImpact', label: 'Benefit impact', type: 'textarea' },
-      { key: 'contractImpact', label: 'Contract impact', type: 'textarea' }
+      { key: 'contractImpact', label: 'Contract impact', type: 'textarea' },
+      { key: 'budgetLineId', label: 'Budget line', type: 'select', hint: 'Required when the change has a cost impact.',
+        options: this.api.get<any>(`projects/${projectId}/budget`).pipe(map(b => (b.lines as any[]).map(l => ({ value: l.id, label: `${l.financialYear} · ${l.costCategory} · ${l.fundingSource}` })))) }
     ];
   }
 
   async edit(row?: any): Promise<void> {
     if (!row && !this.projectId) { alert('Select a project above before creating a change request.'); return; }
-    const v = await openForm(this.dialog, { title: row ? 'Edit change request' : 'New change request', fields: this.fields(),
+    const v = await openForm(this.dialog, { title: row ? 'Edit change request' : 'New change request', fields: this.fields(row?.projectId ?? this.projectId!),
       value: row ?? { costImpact: 0, scheduleImpactDays: 0 } }, '680px');
     if (!v) return;
-    const body = { ...v, projectId: row?.projectId ?? this.projectId, contractId: row?.contractId ?? null, budgetLineId: row?.budgetLineId ?? null };
+    const body = { ...v, projectId: row?.projectId ?? this.projectId, contractId: row?.contractId ?? null };
     (row ? this.api.put(`change-requests/${row.id}`, body) : this.api.post('change-requests', body)).subscribe(() => this.load());
   }
 

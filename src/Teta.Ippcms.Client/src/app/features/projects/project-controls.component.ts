@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { P } from '../../core/models';
@@ -99,22 +100,24 @@ export class ProjectControlsComponent implements OnChanges {
     (row ? this.api.put(`issues/${row.id}`, body) : this.api.post('issues', body)).subscribe(() => this.load());
   }
 
-  private changeFields(): Field[] {
+  private changeFields(projectId: string): Field[] {
     return [
       { key: 'type', label: 'Change type', type: 'select', required: true, options: ['Scope', 'Cost', 'Schedule', 'Benefit'].map(t => ({ value: t, label: t })) },
       { key: 'title', label: 'Title', required: true, wide: true }, { key: 'description', label: 'Description', type: 'textarea', required: true },
       { key: 'justification', label: 'Justification', type: 'textarea', required: true },
       { key: 'costImpact', label: 'Cost impact (R)', type: 'number', required: true }, { key: 'scheduleImpactDays', label: 'Schedule impact (days)', type: 'number', required: true },
       { key: 'proposedEndDate', label: 'Proposed end date', type: 'date' }, { key: 'benefitImpact', label: 'Benefit impact', type: 'textarea' },
-      { key: 'contractImpact', label: 'Contract impact', type: 'textarea' }
+      { key: 'contractImpact', label: 'Contract impact', type: 'textarea' },
+      { key: 'budgetLineId', label: 'Budget line', type: 'select', hint: 'Required when the change has a cost impact.',
+        options: this.api.get<any>(`projects/${projectId}/budget`).pipe(map(b => (b.lines as any[]).map(l => ({ value: l.id, label: `${l.financialYear} · ${l.costCategory} · ${l.fundingSource}` })))) }
     ];
   }
 
   async editChange(row?: any): Promise<void> {
-    const v = await openForm(this.dialog, { title: row ? 'Edit change request' : 'New change request', fields: this.changeFields(),
+    const v = await openForm(this.dialog, { title: row ? 'Edit change request' : 'New change request', fields: this.changeFields(this.project.id),
       value: row ?? { costImpact: 0, scheduleImpactDays: 0 } });
     if (!v) return;
-    const body = { ...v, projectId: this.project.id, contractId: row?.contractId ?? null, budgetLineId: row?.budgetLineId ?? null };
+    const body = { ...v, projectId: this.project.id, contractId: row?.contractId ?? null };
     (row ? this.api.put(`change-requests/${row.id}`, body) : this.api.post('change-requests', body)).subscribe(() => this.load());
   }
 
