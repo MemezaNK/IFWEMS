@@ -34,7 +34,8 @@ import { openForm } from '../../shared/form-dialog.component';
         <div class="card" style="margin-top: 16px">
           <h2>{{ s.indicatorCode }} · {{ s.projectReference }} · {{ s.financialYear }} Q{{ s.quarter }}</h2>
           @if (s.missingEvidenceTypes?.length) { <div class="warn-banner">Missing verified evidence: {{ s.missingEvidenceTypes.join(', ') }}</div> }
-          <teta-documents parentType="PerformanceResult" [parentId]="s.id" [evidenceMode]="true" />
+          <teta-documents parentType="PerformanceResult" [parentId]="s.id" [evidenceMode]="true"
+                         [suggestedEvidenceTypes]="s.missingEvidenceTypes ?? []" />
         </div>
       }
     </div>
